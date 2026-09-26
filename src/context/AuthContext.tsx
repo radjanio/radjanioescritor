@@ -112,7 +112,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (error) {
-          return { success: false, error: error.message };
+          let userMsg = error.message;
+          if (error.message.includes('Invalid login credentials')) {
+            userMsg = 'E-mail ou senha incorretos.';
+          } else if (error.message.includes('Email not confirmed')) {
+            userMsg = 'E-mail ainda não confirmado no Supabase. Marque "Auto Confirm" ou confirme o link enviado.';
+          } else if (error.message.includes('Failed to fetch')) {
+            userMsg = 'Falha de comunicação com o Supabase. Verifique a conexão com a internet.';
+          }
+          return { success: false, error: userMsg };
         }
 
         if (data.user) {
@@ -121,7 +129,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return { success: true };
         }
       } catch (err: any) {
-        return { success: false, error: err?.message || 'Falha ao conectar com o serviço de autenticação.' };
+        const msg = err?.message || '';
+        let friendly = 'Falha ao conectar com o serviço de autenticação.';
+        if (msg.includes('Failed to fetch')) {
+          friendly = 'Não foi possível conectar aos servidores do Supabase. Verifique sua conexão de rede.';
+        }
+        return { success: false, error: friendly };
       }
     }
 

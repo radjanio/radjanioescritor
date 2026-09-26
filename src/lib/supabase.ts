@@ -3,17 +3,18 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const STORAGE_KEY_URL = 'radjanio_supabase_url';
 const STORAGE_KEY_KEY = 'radjanio_supabase_anon_key';
 
-// Project credentials provided by the author
-const DEFAULT_PROJECT_REF = 'hxkidwascznkytztxdu';
-const DEFAULT_PROJECT_URL = `https://${DEFAULT_PROJECT_REF}.supabase.co`;
-const DEFAULT_ANON_KEY =
+// Official project reference and URL extracted from the author's Supabase key
+export const OFFICIAL_PROJECT_REF = 'hxkidwascnzkytzktxdu';
+export const OFFICIAL_PROJECT_URL = `https://${OFFICIAL_PROJECT_REF}.supabase.co`;
+export const OFFICIAL_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh4a2lkd2FzY256a3l0emt0eGR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzMjE3MDAsImV4cCI6MjA4Njg5NzcwMH0.hQNSaN2JUmzxtP-P_uCOL-lGtv5xZjuuzReVllRV1Z0';
 
 function extractRefFromJwt(token: string): string | null {
   try {
     const parts = token.split('.');
     if (parts.length >= 2) {
-      const decoded = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+      const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = atob(base64);
       const parsed = JSON.parse(decoded);
       if (parsed && typeof parsed.ref === 'string') {
         return parsed.ref;
@@ -26,14 +27,7 @@ function extractRefFromJwt(token: string): string | null {
 }
 
 export function normalizeSupabaseUrl(rawUrl: string, anonKey: string = ''): string {
-  const clean = (rawUrl || '').trim();
-
-  // If already standard http/https URL
-  if (clean.startsWith('http://') || clean.startsWith('https://')) {
-    return clean.replace(/\/+$/, '');
-  }
-
-  // If a publishable key or raw string was passed, attempt extracting ref from the JWT anon key
+  // If a valid Supabase anon JWT is present, always bind directly to its embedded ref
   if (anonKey) {
     const jwtRef = extractRefFromJwt(anonKey);
     if (jwtRef) {
@@ -41,24 +35,40 @@ export function normalizeSupabaseUrl(rawUrl: string, anonKey: string = ''): stri
     }
   }
 
-  // If a clean project ref like "hxkidwascznkytztxdu" was passed
+  const clean = (rawUrl || '').trim();
+
+  // Fix old typo hostname if present
+  if (clean.includes('hxkidwascznkytztxdu')) {
+    return OFFICIAL_PROJECT_URL;
+  }
+
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean.replace(/\/+$/, '');
+  }
+
   if (clean && !clean.includes('/') && !clean.includes(' ') && !clean.startsWith('sb_')) {
     return `https://${clean}.supabase.co`;
   }
 
-  return clean || DEFAULT_PROJECT_URL;
+  return OFFICIAL_PROJECT_URL;
 }
 
 export function getSupabaseCredentials(): { url: string; anonKey: string } {
   const envUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
   const envKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
 
-  const storedUrl = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_URL) || '' : '';
+  let storedUrl = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_URL) || '' : '';
   const storedKey = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY_KEY) || '' : '';
 
-  const rawKey = (storedKey || envKey || DEFAULT_ANON_KEY).trim();
-  const rawUrl = (storedUrl || envUrl || DEFAULT_PROJECT_URL).trim();
+  const rawKey = (storedKey || envKey || OFFICIAL_ANON_KEY).trim();
 
+  // If local storage has the typo URL, migrate it immediately
+  if (typeof window !== 'undefined' && storedUrl.includes('hxkidwascznkytztxdu')) {
+    storedUrl = OFFICIAL_PROJECT_URL;
+    localStorage.setItem(STORAGE_KEY_URL, OFFICIAL_PROJECT_URL);
+  }
+
+  const rawUrl = (storedUrl || envUrl || OFFICIAL_PROJECT_URL).trim();
   const finalUrl = normalizeSupabaseUrl(rawUrl, rawKey);
 
   return {
