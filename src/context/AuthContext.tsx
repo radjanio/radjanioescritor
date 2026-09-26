@@ -21,51 +21,84 @@ const AuthContext = createContext<AuthContextType>({
 
 const LOCAL_AUTH_KEY = 'radjanio_admin_session';
 
+function getInitialLocalAuth(): { authenticated: boolean; email: string | null } {
+  if (typeof window === 'undefined') {
+    return { authenticated: false, email: null };
+  }
+  try {
+    const localSess = localStorage.getItem(LOCAL_AUTH_KEY);
+    if (localSess) {
+      const parsed = JSON.parse(localSess);
+      if (parsed.authenticated) {
+        return { authenticated: true, email: parsed.email || 'radjaniokk@gmail.com' };
+      }
+    }
+    // Check for Supabase session stored by @supabase/supabase-js
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
+        const val = localStorage.getItem(key);
+        if (val && val.includes('access_token')) {
+          const parsed = JSON.parse(val);
+          const email = parsed?.user?.email || 'autor@radjanio.com';
+          return { authenticated: true, email };
+        }
+      }
+    }
+  } catch {
+    // fallback
+  }
+  return { authenticated: false, email: null };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const initialAuth = getInitialLocalAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initialAuth.authenticated);
+  const [userEmail, setUserEmail] = useState<string | null>(initialAuth.email);
+  const [isLoading, setIsLoading] = useState<boolean>(!initialAuth.authenticated);
   const [isSupabaseLive, setIsSupabaseLive] = useState<boolean>(false);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    setIsLoading(true);
+    let isMounted = true;
     const supabase = getSupabase();
     const live = isSupabaseConfigured();
     setIsSupabaseLive(live);
 
+    let authSubscription: { unsubscribe: () => void } | null = null;
+
     if (supabase && live) {
-      try {
-        const { data } = await supabase.auth.getSession();
+      supabase.auth.getSession().then(({ data }) => {
+        if (!isMounted) return;
         if (data.session?.user) {
           setIsAuthenticated(true);
           setUserEmail(data.session.user.email || 'autor@radjanio.com');
-          setIsLoading(false);
-          return;
         }
-      } catch (err) {
+        setIsLoading(false);
+      }).catch((err) => {
         console.warn('Erro ao verificar sessão Supabase:', err);
-      }
+        if (isMounted) setIsLoading(false);
+      });
+
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!isMounted) return;
+        if (session?.user) {
+          setIsAuthenticated(true);
+          setUserEmail(session.user.email || 'autor@radjanio.com');
+        } else if (!localStorage.getItem(LOCAL_AUTH_KEY)) {
+          setIsAuthenticated(false);
+          setUserEmail(null);
+        }
+      });
+      authSubscription = data.subscription;
+    } else {
+      setIsLoading(false);
     }
 
-    // Check local session
-    const localSess = localStorage.getItem(LOCAL_AUTH_KEY);
-    if (localSess) {
-      try {
-        const parsed = JSON.parse(localSess);
-        if (parsed.authenticated) {
-          setIsAuthenticated(true);
-          setUserEmail(parsed.email || 'radjaniokk@gmail.com');
-        }
-      } catch {
-        localStorage.removeItem(LOCAL_AUTH_KEY);
-      }
-    }
-    setIsLoading(false);
-  };
+    return () => {
+      isMounted = false;
+      authSubscription?.unsubscribe();
+    };
+  }, []);
 
   const loginWithPassword = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     const supabase = getSupabase();

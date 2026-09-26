@@ -10,6 +10,7 @@ interface TextDetailPageProps {
 
 export const TextDetailPage: React.FC<TextDetailPageProps> = ({ textItem, navigate }) => {
   const [fontSize, setFontSize] = useState<'base' | 'lg' | 'xl'>('lg');
+  const [copied, setCopied] = useState(false);
 
   if (!textItem) {
     return (
@@ -43,7 +44,8 @@ export const TextDetailPage: React.FC<TextDetailPageProps> = ({ textItem, naviga
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('Link copiado!');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
@@ -98,10 +100,11 @@ export const TextDetailPage: React.FC<TextDetailPageProps> = ({ textItem, naviga
 
           <button
             onClick={handleShare}
-            className="p-1.5 text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors rounded-sm hover:bg-stone-100 dark:hover:bg-stone-800"
             title="Compartilhar"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-3.5 h-3.5" />
+            {copied && <span className="text-[11px] text-emerald-600 font-medium">Link copiado!</span>}
           </button>
         </div>
       </div>

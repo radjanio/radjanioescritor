@@ -9,6 +9,8 @@ interface JournalDetailPageProps {
 }
 
 export const JournalDetailPage: React.FC<JournalDetailPageProps> = ({ update, navigate }) => {
+  const [copied, setCopied] = React.useState(false);
+
   if (!update) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
@@ -37,7 +39,8 @@ export const JournalDetailPage: React.FC<JournalDetailPageProps> = ({ update, na
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
-      alert('Link copiado para a área de transferência.');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
   };
 
@@ -60,10 +63,11 @@ export const JournalDetailPage: React.FC<JournalDetailPageProps> = ({ update, na
 
         <button
           onClick={handleShare}
-          className="p-2 text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors rounded-sm hover:bg-stone-100 dark:hover:bg-stone-800"
           title="Compartilhar"
         >
-          <Share2 className="w-4 h-4" />
+          <Share2 className="w-3.5 h-3.5" />
+          {copied && <span className="text-[11px] text-emerald-600 font-medium">Link copiado!</span>}
         </button>
       </div>
 
