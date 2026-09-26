@@ -1,0 +1,6 @@
+{
+  "name": "Radjanio Silva Souza - Autor e Escritor",
+  "description": "Site oficial do autor e escritor Radjanio Silva Souza. Biblioteca de livros, diário de escrita criativa, projetos literários, crônicas e ensaios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
