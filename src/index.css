@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-serif: "Cormorant Garamond", Georgia, serif;
+    --font-editorial: "Newsreader", Georgia, serif;
+    --font-display: "Cinzel", "Cormorant Garamond", serif;
+    --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
+  }
+
+  .font-editorial {
+    font-family: var(--font-editorial);
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 162, 158, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 162, 158, 0.6);
+}
+
+/* Atmospheric noise/grain & literary accents */
+.literary-rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(168, 162, 158, 0.4), transparent);
+}
+
+.text-justify-pretty {
+  text-align: justify;
+  hyphens: auto;
+}
