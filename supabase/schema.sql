@@ -122,39 +122,26 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   biography TEXT NOT NULL DEFAULT '',
   author_photo_url TEXT,
   author_quote TEXT NOT NULL DEFAULT '',
-  birth_date DATE,
-  birth_place TEXT,
-  occupation TEXT,
-  literary_influences TEXT,
-  career_summary TEXT,
-  email TEXT NOT NULL DEFAULT 'radjaniosilvasouza7@gmail.com',
-  instagram_url TEXT DEFAULT 'https://instagram.com/iam.radjanio',
-  twitter_url TEXT DEFAULT 'https://x.com/radjaniocat',
-  tiktok_url TEXT DEFAULT 'https://tiktok.com/@iamradjanio',
+  email TEXT NOT NULL DEFAULT 'radjaniokk@gmail.com',
+  instagram_url TEXT,
   facebook_url TEXT,
+  twitter_url TEXT,
   youtube_url TEXT,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Inserir configuração inicial se não existir (apenas nome, email e redes sociais)
-INSERT INTO public.site_settings (id, author_name, email, instagram_url, twitter_url, tiktok_url)
+-- Inserir configuração inicial se não existir
+INSERT INTO public.site_settings (id, author_name, biography, author_quote, email)
 SELECT 
   'a0000000-0000-0000-0000-000000000001',
   'Radjanio Silva Souza',
-  'radjaniosilvasouza7@gmail.com',
-  'https://instagram.com/iam.radjanio',
-  'https://x.com/radjaniocat',
-  'https://tiktok.com/@iamradjanio'
+  'Radjanio Silva Souza é autor e escritor contemporâneo, dedicado à ficção, narrativas imersivas e à investigação das complexidades humanas através da palavra escrita.',
+  'A escrita é a ponte silenciosa entre o abismo interior e a luz compartilhada.',
+  'radjaniokk@gmail.com'
 WHERE NOT EXISTS (SELECT 1 FROM public.site_settings);
 
 -- Compatibilidade e migração suave para bases já existentes
 ALTER TABLE IF EXISTS public.books ADD COLUMN IF NOT EXISTS page_count INTEGER;
-ALTER TABLE IF EXISTS public.site_settings ADD COLUMN IF NOT EXISTS birth_date DATE;
-ALTER TABLE IF EXISTS public.site_settings ADD COLUMN IF NOT EXISTS birth_place TEXT;
-ALTER TABLE IF EXISTS public.site_settings ADD COLUMN IF NOT EXISTS occupation TEXT DEFAULT 'Escritor e Autor';
-ALTER TABLE IF EXISTS public.site_settings ADD COLUMN IF NOT EXISTS literary_influences TEXT;
-ALTER TABLE IF EXISTS public.site_settings ADD COLUMN IF NOT EXISTS career_summary TEXT;
-ALTER TABLE IF EXISTS public.site_settings ADD COLUMN IF NOT EXISTS tiktok_url TEXT;
 
 -- =========================================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

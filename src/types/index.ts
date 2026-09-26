@@ -142,16 +142,10 @@ export interface SiteSettings {
   biography: string;
   author_photo_url?: string;
   author_quote: string;
-  birth_date?: string;
-  birth_place?: string;
-  occupation?: string;
-  literary_influences?: string;
-  career_summary?: string;
   email: string;
   instagram_url?: string;
   facebook_url?: string;
   twitter_url?: string;
-  tiktok_url?: string;
   youtube_url?: string;
   updated_at?: string;
 }

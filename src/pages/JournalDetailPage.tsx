@@ -1,21 +1,14 @@
 import React from 'react';
 import { Update } from '../types';
 import { SEOHead } from '../components/SEOHead';
-import { ArrowLeft, Calendar, Tag, BookOpen, Share2, Feather } from 'lucide-react';
+import { ArrowLeft, Calendar, Tag, BookOpen, Share2 } from 'lucide-react';
 
 interface JournalDetailPageProps {
   update: Update | null;
   navigate: (path: string) => void;
-  authorName?: string;
-  authorPhoto?: string;
 }
 
-export const JournalDetailPage: React.FC<JournalDetailPageProps> = ({
-  update,
-  navigate,
-  authorName = 'Radjanio Silva Souza',
-  authorPhoto,
-}) => {
+export const JournalDetailPage: React.FC<JournalDetailPageProps> = ({ update, navigate }) => {
   if (!update) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
@@ -98,20 +91,6 @@ export const JournalDetailPage: React.FC<JournalDetailPageProps> = ({
         <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight text-stone-900 dark:text-stone-50 leading-[1.15]">
           {update.title}
         </h1>
-
-        {/* Author Byline */}
-        <div className="flex items-center justify-center gap-2.5 pt-2">
-          <div className="w-7 h-7 rounded-full overflow-hidden bg-stone-200 dark:bg-stone-800 shrink-0 border border-stone-300 dark:border-stone-700 flex items-center justify-center">
-            {authorPhoto ? (
-              <img src={authorPhoto} alt={authorName} className="w-full h-full object-cover" />
-            ) : (
-              <Feather className="w-3.5 h-3.5 text-stone-500" />
-            )}
-          </div>
-          <span className="text-xs text-stone-700 dark:text-stone-300 font-medium">
-            Por {authorName}
-          </span>
-        </div>
 
         {(update.book_title || update.project_title) && (
           <div className="pt-2">

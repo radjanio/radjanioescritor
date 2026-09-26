@@ -176,23 +176,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
       >
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-stone-200 dark:bg-stone-800 shrink-0 border border-stone-300 dark:border-stone-700 flex items-center justify-center">
-              {settings?.author_photo_url ? (
-                <img src={settings.author_photo_url} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <Feather className="w-5 h-5 text-amber-800 dark:text-amber-400" />
-              )}
-            </div>
-            <div className="space-y-0.5 overflow-hidden">
-              <span className="text-[9px] uppercase tracking-[0.2em] text-amber-800 dark:text-amber-400 font-bold block">
-                Painel do Autor
-              </span>
-              <h1 className="font-serif text-sm font-bold text-stone-900 dark:text-stone-100 truncate">
-                {settings?.author_name || 'Radjanio Silva Souza'}
-              </h1>
-              <p className="text-[10px] text-stone-400 truncate">{userEmail}</p>
-            </div>
+          <div className="space-y-1">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-amber-800 dark:text-amber-400 font-bold block">
+              Painel Administrativo
+            </span>
+            <h1 className="font-serif text-lg font-bold text-stone-900 dark:text-stone-100 truncate">
+              {settings?.author_name || 'Radjanio Silva Souza'}
+            </h1>
+            <p className="text-[11px] text-stone-400 truncate">{userEmail}</p>
           </div>
 
           {/* Nav List */}

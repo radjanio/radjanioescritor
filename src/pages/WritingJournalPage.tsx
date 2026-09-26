@@ -7,16 +7,9 @@ import { Feather, Calendar, BookOpen, ArrowRight, Search } from 'lucide-react';
 interface WritingJournalPageProps {
   updates: Update[];
   navigate: (path: string) => void;
-  authorName?: string;
-  authorPhoto?: string;
 }
 
-export const WritingJournalPage: React.FC<WritingJournalPageProps> = ({
-  updates,
-  navigate,
-  authorName = 'Radjanio Silva Souza',
-  authorPhoto,
-}) => {
+export const WritingJournalPage: React.FC<WritingJournalPageProps> = ({ updates, navigate }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -153,24 +146,9 @@ export const WritingJournalPage: React.FC<WritingJournalPageProps> = ({
                   {item.excerpt || item.content}
                 </p>
 
-                <div className="pt-3 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full overflow-hidden bg-stone-200 dark:bg-stone-800 shrink-0 flex items-center justify-center">
-                      {authorPhoto ? (
-                        <img src={authorPhoto} alt={authorName} className="w-full h-full object-cover" />
-                      ) : (
-                        <Feather className="w-3 h-3 text-stone-500" />
-                      )}
-                    </div>
-                    <span className="text-xs text-stone-600 dark:text-stone-300 font-medium">
-                      {authorName}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-amber-900 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
-                    <span>Ler anotação</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </div>
+                <div className="pt-2 flex items-center gap-1.5 text-xs uppercase tracking-wider font-semibold text-amber-900 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
+                  <span>Ler anotação completa</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
             </article>

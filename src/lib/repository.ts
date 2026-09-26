@@ -25,19 +25,13 @@ export function slugify(text: string): string {
 const DEFAULT_SETTINGS: SiteSettings = {
   id: 'a0000000-0000-0000-0000-000000000001',
   author_name: 'Radjanio Silva Souza',
-  biography: '',
+  biography: 'Radjanio Silva Souza é autor e escritor contemporâneo, dedicado à ficção, narrativas imersivas e à investigação das complexidades humanas através da palavra escrita.',
   author_photo_url: '',
-  author_quote: '',
-  birth_date: '',
-  birth_place: '',
-  occupation: '',
-  literary_influences: '',
-  career_summary: '',
-  email: 'radjaniosilvasouza7@gmail.com',
-  instagram_url: 'https://instagram.com/iam.radjanio',
-  twitter_url: 'https://x.com/radjaniocat',
-  tiktok_url: 'https://tiktok.com/@iamradjanio',
+  author_quote: 'A escrita é a ponte silenciosa entre o abismo interior e a luz compartilhada.',
+  email: 'radjaniokk@gmail.com',
+  instagram_url: '',
   facebook_url: '',
+  twitter_url: '',
   youtube_url: '',
   updated_at: new Date().toISOString()
 };
@@ -77,14 +71,7 @@ export const repository = {
         console.warn('Erro ao carregar configurações do Supabase:', err);
       }
     }
-    const local = getLocal<SiteSettings>('settings', DEFAULT_SETTINGS);
-    return {
-      ...DEFAULT_SETTINGS,
-      ...local,
-      instagram_url: local.instagram_url || DEFAULT_SETTINGS.instagram_url,
-      twitter_url: local.twitter_url || DEFAULT_SETTINGS.twitter_url,
-      tiktok_url: local.tiktok_url || DEFAULT_SETTINGS.tiktok_url,
-    };
+    return getLocal<SiteSettings>('settings', DEFAULT_SETTINGS);
   },
 
   async updateSettings(settings: Partial<SiteSettings>): Promise<SiteSettings> {

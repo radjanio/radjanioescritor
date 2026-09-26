@@ -9,7 +9,7 @@ interface AdminLoginPageProps {
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
   const { isAuthenticated, loginWithPassword, isSupabaseLive } = useAuth();
-  const [email, setEmail] = useState('radjaniosilvasouza7@gmail.com');
+  const [email, setEmail] = useState('radjaniokk@gmail.com');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -111,7 +111,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
 
         <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 text-center">
           <p className="text-[11px] text-stone-500 leading-relaxed">
-            Acesso do autor com e-mail cadastrado ou senha inicial <code className="bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded text-amber-800 dark:text-amber-400">123admin</code>. Você pode trocar a senha a qualquer momento nas configurações do painel.
+            Dica para teste inicial: utilize a senha <code className="bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded text-amber-800 dark:text-amber-400">admin123</code> ou conecte suas credenciais reais do Supabase na aba de banco de dados.
           </p>
         </div>
       </div>

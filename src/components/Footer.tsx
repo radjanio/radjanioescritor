@@ -90,72 +90,51 @@ export const Footer: React.FC<FooterProps> = ({ settings, navigate }) => {
               </a>
             )}
 
-            <div className="flex flex-col gap-2 pt-2">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-stone-500">
-                Redes Oficiais do Autor
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {settings.instagram_url && (
-                  <a
-                    href={settings.instagram_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-sm bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors inline-flex items-center gap-1.5 text-xs font-medium"
-                    aria-label="Instagram @iam.radjanio"
-                  >
-                    <Instagram className="w-3.5 h-3.5" />
-                    <span>@iam.radjanio</span>
-                  </a>
-                )}
-                {settings.twitter_url && (
-                  <a
-                    href={settings.twitter_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-sm bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors inline-flex items-center gap-1.5 text-xs font-medium"
-                    aria-label="X radjaniocat"
-                  >
-                    <Twitter className="w-3.5 h-3.5" />
-                    <span>radjaniocat</span>
-                  </a>
-                )}
-                {settings.tiktok_url && (
-                  <a
-                    href={settings.tiktok_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-2.5 py-1.5 rounded-sm bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors inline-flex items-center gap-1.5 text-xs font-medium"
-                    aria-label="TikTok @iamradjanio"
-                  >
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.74 4.54V11.8a8.28 8.28 0 0 0 5.85 2.34v-3.5a4.84 4.84 0 0 1-3.77-3.95h3.77z"/>
-                    </svg>
-                    <span>@iamradjanio</span>
-                  </a>
-                )}
-                {settings.facebook_url && (
-                  <a
-                    href={settings.facebook_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-full bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors"
-                    aria-label="Facebook"
-                  >
-                    <Facebook className="w-4 h-4" />
-                  </a>
-                )}
-                {settings.youtube_url && (
-                  <a
-                    href={settings.youtube_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 rounded-full bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors"
-                    aria-label="YouTube"
-                  >
-                    <Youtube className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
+            <div className="flex items-center gap-3 pt-2">
+              {settings.instagram_url && (
+                <a
+                  href={settings.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              )}
+              {settings.facebook_url && (
+                <a
+                  href={settings.facebook_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+              )}
+              {settings.twitter_url && (
+                <a
+                  href={settings.twitter_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors"
+                  aria-label="Twitter / X"
+                >
+                  <Twitter className="w-4 h-4" />
+                </a>
+              )}
+              {settings.youtube_url && (
+                <a
+                  href={settings.youtube_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full bg-stone-200/70 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors"
+                  aria-label="YouTube"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+              )}
             </div>
 
             <button
@@ -172,7 +151,14 @@ export const Footer: React.FC<FooterProps> = ({ settings, navigate }) => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-500 space-y-3 sm:space-y-0">
           <p>© {currentYear} {settings.author_name}. Todos os direitos reservados.</p>
           <div className="flex items-center gap-4">
-            <span>Literatura Brasileira Contemporânea</span>
+            <button
+              onClick={() => navigate('/admin/login')}
+              className="hover:text-stone-800 dark:hover:text-stone-300 transition-colors"
+            >
+              Área do Autor
+            </button>
+            <span>·</span>
+            <span>Plataforma Literária</span>
           </div>
         </div>
       </div>

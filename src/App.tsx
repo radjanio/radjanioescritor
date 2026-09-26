@@ -125,23 +125,9 @@ export function AppContent() {
     if (route.path === 'escrita') {
       if (route.slug) {
         const entry = updates.find((u) => u.slug === route.slug) || null;
-        return (
-          <JournalDetailPage
-            update={entry}
-            navigate={navigate}
-            authorName={settings.author_name}
-            authorPhoto={settings.author_photo_url}
-          />
-        );
+        return <JournalDetailPage update={entry} navigate={navigate} />;
       }
-      return (
-        <WritingJournalPage
-          updates={updates}
-          navigate={navigate}
-          authorName={settings.author_name}
-          authorPhoto={settings.author_photo_url}
-        />
-      );
+      return <WritingJournalPage updates={updates} navigate={navigate} />;
     }
 
     // 4. PROJETOS & PROJETO DETALHE

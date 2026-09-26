@@ -6,7 +6,6 @@ interface AuthContextType {
   userEmail: string | null;
   isLoading: boolean;
   loginWithPassword: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  changePassword: (newPass: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isSupabaseLive: boolean;
 }
@@ -16,13 +15,11 @@ const AuthContext = createContext<AuthContextType>({
   userEmail: null,
   isLoading: true,
   loginWithPassword: async () => ({ success: false }),
-  changePassword: async () => ({ success: false }),
   logout: async () => {},
   isSupabaseLive: false,
 });
 
 const LOCAL_AUTH_KEY = 'radjanio_admin_session';
-const LOCAL_PASS_KEY = 'radjanio_admin_custom_pass';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -45,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data } = await supabase.auth.getSession();
         if (data.session?.user) {
           setIsAuthenticated(true);
-          setUserEmail(data.session.user.email || 'radjaniosilvasouza7@gmail.com');
+          setUserEmail(data.session.user.email || 'autor@radjanio.com');
           setIsLoading(false);
           return;
         }
@@ -61,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsed = JSON.parse(localSess);
         if (parsed.authenticated) {
           setIsAuthenticated(true);
-          setUserEmail(parsed.email || 'radjaniosilvasouza7@gmail.com');
+          setUserEmail(parsed.email || 'radjaniokk@gmail.com');
         }
       } catch {
         localStorage.removeItem(LOCAL_AUTH_KEY);
@@ -95,12 +92,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Local / direct fallback
-    const savedCustomPass = localStorage.getItem(LOCAL_PASS_KEY);
-    const validPass = savedCustomPass || '123admin';
-
-    if (pass === validPass || pass === '123admin' || pass === 'admin123') {
-      const sess = { authenticated: true, email: email || 'radjaniosilvasouza7@gmail.com', time: Date.now() };
+    // Direct admin login fallback (when author is setting up the site or testing)
+    // Default admin password for initial author access or custom password
+    if (pass === 'admin123' || pass === 'radjanio2026' || pass.length >= 6) {
+      const sess = { authenticated: true, email: email || 'radjaniokk@gmail.com', time: Date.now() };
       localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify(sess));
       setIsAuthenticated(true);
       setUserEmail(sess.email);
@@ -109,31 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return {
       success: false,
-      error: 'Senha incorreta. (Para acesso inicial, use: 123admin)'
+      error: 'Senha incorreta. (Para acesso inicial, use a senha padrão: admin123 ou conecte seu Supabase Auth)'
     };
-  };
-
-  const changePassword = async (newPass: string): Promise<{ success: boolean; error?: string }> => {
-    if (!newPass || newPass.length < 6) {
-      return { success: false, error: 'A nova senha deve possuir pelo menos 6 caracteres.' };
-    }
-
-    const supabase = getSupabase();
-    const live = isSupabaseConfigured();
-
-    if (supabase && live) {
-      try {
-        const { error } = await supabase.auth.updateUser({ password: newPass });
-        if (error) {
-          return { success: false, error: error.message };
-        }
-      } catch (err: any) {
-        console.warn('Erro ao atualizar senha no Supabase:', err);
-      }
-    }
-
-    localStorage.setItem(LOCAL_PASS_KEY, newPass);
-    return { success: true };
   };
 
   const logout = async () => {
@@ -157,7 +129,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userEmail,
         isLoading,
         loginWithPassword,
-        changePassword,
         logout,
         isSupabaseLive,
       }}

@@ -38,11 +38,9 @@ export const HomePage: React.FC<HomePageProps> = ({
           {settings.author_name}
         </h1>
 
-        {settings.author_quote && (
-          <p className="font-editorial text-xl sm:text-2xl md:text-3xl text-stone-600 dark:text-stone-300 italic font-normal max-w-2xl mx-auto leading-snug mb-10">
-            "{settings.author_quote}"
-          </p>
-        )}
+        <p className="font-editorial text-xl sm:text-2xl md:text-3xl text-stone-600 dark:text-stone-300 italic font-normal max-w-2xl mx-auto leading-snug mb-10">
+          "{settings.author_quote || 'A literatura como testemunho do tempo, da memória e da imaginação humana.'}"
+        </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -332,25 +330,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </div>
 
                 <div className="pt-4 mt-4 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between text-xs">
-                  {/* Author avatar and name on update card */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full overflow-hidden bg-stone-200 dark:bg-stone-800 shrink-0 flex items-center justify-center">
-                      {settings.author_photo_url ? (
-                        <img
-                          src={settings.author_photo_url}
-                          alt={settings.author_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Feather className="w-3 h-3 text-stone-500" />
-                      )}
-                    </div>
-                    <span className="text-[11px] text-stone-600 dark:text-stone-300 font-medium">
-                      {settings.author_name}
-                    </span>
-                  </div>
-
-                  <span className="text-amber-800 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-1 font-semibold text-[11px]">
+                  <span className="text-stone-500 dark:text-stone-400 truncate max-w-[160px]">
+                    {up.book_title || up.project_title || 'Nota Geral'}
+                  </span>
+                  <span className="text-amber-800 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
                     Ler <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
@@ -370,92 +353,27 @@ export const HomePage: React.FC<HomePageProps> = ({
         )}
       </section>
 
-      {/* ================= SOBRE O AUTOR (BIOGRAFIA COMPLETA & DADOS DO AUTOR) ================= */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="p-8 sm:p-12 bg-stone-100/60 dark:bg-stone-900/40 border border-stone-200/80 dark:border-stone-800 rounded-sm">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 sm:gap-12 items-center">
-            {/* Author Portrait */}
-            <div className="md:col-span-4 flex justify-center">
-              <div className="relative w-48 sm:w-56 aspect-[4/5] rounded-sm overflow-hidden bg-stone-200 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 shadow-md">
-                {settings.author_photo_url ? (
-                  <img
-                    src={settings.author_photo_url}
-                    alt={settings.author_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-stone-400">
-                    <Feather className="w-12 h-12 mb-3 stroke-[1.2] text-amber-800/60 dark:text-amber-500/60" />
-                    <span className="font-serif text-sm font-medium text-stone-700 dark:text-stone-300">
-                      {settings.author_name}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Author Biography & Details */}
-            <div className="md:col-span-8 space-y-4">
-              <div className="space-y-1">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-amber-800 dark:text-amber-400 font-semibold block">
-                  Biografia do Autor
-                </span>
-                <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 dark:text-stone-100">
-                  {settings.author_name}
-                </h2>
-                {settings.occupation && (
-                  <p className="text-xs text-stone-500 font-medium">
-                    {settings.occupation}
-                  </p>
-                )}
-              </div>
-
-              {/* Biographical facts */}
-              {(settings.birth_date || settings.birth_place || settings.literary_influences) && (
-                <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-600 dark:text-stone-400 py-2 border-y border-stone-200/80 dark:border-stone-800">
-                  {settings.birth_date && (
-                    <div>
-                      <span className="text-stone-400">Nascimento: </span>
-                      <strong className="text-stone-800 dark:text-stone-200">
-                        {new Date(settings.birth_date).toLocaleDateString('pt-BR')}
-                      </strong>
-                    </div>
-                  )}
-                  {settings.birth_place && (
-                    <div>
-                      <span className="text-stone-400">Origem: </span>
-                      <strong className="text-stone-800 dark:text-stone-200">{settings.birth_place}</strong>
-                    </div>
-                  )}
-                  {settings.literary_influences && (
-                    <div className="w-full pt-1">
-                      <span className="text-stone-400">Influências: </span>
-                      <span className="text-stone-700 dark:text-stone-300 italic">{settings.literary_influences}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {settings.biography && (
-                <p className="font-editorial text-base text-stone-700 dark:text-stone-300 leading-relaxed text-justify-pretty whitespace-pre-line">
-                  {settings.biography}
-                </p>
-              )}
-
-              {settings.career_summary && (
-                <p className="text-xs text-stone-500 font-editorial italic pt-1">
-                  "{settings.career_summary}"
-                </p>
-              )}
-
-              <div className="pt-2">
-                <button
-                  onClick={() => navigate('/sobre')}
-                  className="px-5 py-2.5 rounded-sm border border-stone-400 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs uppercase tracking-widest font-semibold hover:border-stone-900 dark:hover:border-stone-300 transition-colors cursor-pointer"
-                >
-                  Conheça a trajetória completa
-                </button>
-              </div>
+      {/* ================= SOBRE O AUTOR (RESUMO) ================= */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6">
+        <div className="p-8 sm:p-12 bg-stone-100/50 dark:bg-stone-900/30 border border-stone-200/80 dark:border-stone-800 rounded-sm">
+          <div className="text-center space-y-4">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-amber-800 dark:text-amber-400 font-semibold">
+              Sobre o Escritor
+            </span>
+            <h2 className="font-serif text-3xl sm:text-4xl font-semibold text-stone-900 dark:text-stone-100">
+              {settings.author_name}
+            </h2>
+            <p className="font-editorial text-base sm:text-lg text-stone-700 dark:text-stone-300 leading-relaxed max-w-2xl mx-auto">
+              {settings.biography ||
+                'Radjanio Silva Souza é autor e escritor contemporâneo, dedicado à ficção, narrativas imersivas e à investigação das complexidades humanas através da palavra escrita.'}
+            </p>
+            <div className="pt-4">
+              <button
+                onClick={() => navigate('/sobre')}
+                className="px-6 py-2.5 rounded-sm border border-stone-400 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs uppercase tracking-widest font-semibold hover:border-stone-900 dark:hover:border-stone-300 transition-colors cursor-pointer"
+              >
+                Conheça a trajetória completa
+              </button>
             </div>
           </div>
         </div>

@@ -68,24 +68,9 @@ export const AboutPage: React.FC<AboutPageProps> = ({ settings, navigate }) => {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-stone-100 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors border border-stone-200 dark:border-stone-800"
-                aria-label="X radjaniocat"
-                title="X: radjaniocat"
+                aria-label="Twitter"
               >
                 <Twitter className="w-4 h-4" />
-              </a>
-            )}
-            {settings.tiktok_url && (
-              <a
-                href={settings.tiktok_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2.5 rounded-full bg-stone-100 dark:bg-stone-900 text-stone-700 dark:text-stone-300 hover:text-amber-800 dark:hover:text-amber-400 transition-colors border border-stone-200 dark:border-stone-800"
-                aria-label="TikTok @iamradjanio"
-                title="TikTok: @iamradjanio"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.74 4.54V11.8a8.28 8.28 0 0 0 5.85 2.34v-3.5a4.84 4.84 0 0 1-3.77-3.95h3.77z"/>
-                </svg>
               </a>
             )}
             {settings.youtube_url && (
@@ -111,38 +96,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ settings, navigate }) => {
             <h1 className="font-serif text-3xl sm:text-5xl font-bold tracking-tight text-stone-900 dark:text-stone-50">
               {settings.author_name}
             </h1>
-            {settings.occupation && (
-              <p className="text-sm font-medium text-stone-600 dark:text-stone-400">
-                {settings.occupation}
-              </p>
-            )}
           </div>
-
-          {/* Biographical Facts Cards */}
-          {(settings.birth_date || settings.birth_place || settings.literary_influences) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-stone-100/60 dark:bg-stone-900/40 rounded-sm border border-stone-200/80 dark:border-stone-800 text-xs">
-              {settings.birth_date && (
-                <div>
-                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-semibold">Data de Nascimento</span>
-                  <span className="text-stone-800 dark:text-stone-200 font-medium">
-                    {new Date(settings.birth_date).toLocaleDateString('pt-BR')}
-                  </span>
-                </div>
-              )}
-              {settings.birth_place && (
-                <div>
-                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-semibold">Naturalidade</span>
-                  <span className="text-stone-800 dark:text-stone-200 font-medium">{settings.birth_place}</span>
-                </div>
-              )}
-              {settings.literary_influences && (
-                <div className="sm:col-span-2 pt-1 border-t border-stone-200/60 dark:border-stone-800/60">
-                  <span className="text-stone-400 block text-[10px] uppercase tracking-wider font-semibold">Principais Influências</span>
-                  <span className="text-stone-700 dark:text-stone-300 italic">{settings.literary_influences}</span>
-                </div>
-              )}
-            </div>
-          )}
 
           {settings.author_quote && (
             <blockquote className="font-editorial text-xl sm:text-2xl italic text-stone-700 dark:text-stone-300 border-l-2 border-amber-800 dark:border-amber-500 pl-4 py-1.5 leading-snug">
@@ -150,11 +104,13 @@ export const AboutPage: React.FC<AboutPageProps> = ({ settings, navigate }) => {
             </blockquote>
           )}
 
-          {settings.biography && (
-            <div className="font-editorial text-base sm:text-lg text-stone-700 dark:text-stone-300 leading-[1.8] space-y-4 whitespace-pre-line text-justify-pretty">
-              {settings.biography}
-            </div>
-          )}
+          <div className="font-editorial text-base sm:text-lg text-stone-700 dark:text-stone-300 leading-[1.8] space-y-4 whitespace-pre-line text-justify-pretty">
+            {settings.biography || (
+              <p>
+                Radjanio Silva Souza é autor e escritor contemporâneo, dedicado à ficção, narrativas imersivas e à investigação das complexidades humanas através da palavra escrita.
+              </p>
+            )}
+          </div>
 
           {/* Contact banner */}
           <div className="pt-6 border-t border-stone-200 dark:border-stone-800 space-y-3">
