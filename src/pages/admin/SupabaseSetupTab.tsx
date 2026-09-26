@@ -240,62 +240,70 @@ ALTER TABLE public.timeline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Leitura pública de livros" ON public.books;
-CREATE POLICY "Leitura pública de livros" ON public.books FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Admin gerencia livros" ON public.books;
-CREATE POLICY "Admin gerencia livros" ON public.books FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Books
+DROP POLICY IF EXISTS "books_select_policy" ON public.books;
+CREATE POLICY "books_select_policy" ON public.books FOR SELECT USING (true);
+DROP POLICY IF EXISTS "books_admin_policy" ON public.books;
+CREATE POLICY "books_admin_policy" ON public.books FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de etapas" ON public.book_stages;
-CREATE POLICY "Leitura pública de etapas" ON public.book_stages FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Admin gerencia etapas" ON public.book_stages;
-CREATE POLICY "Admin gerencia etapas" ON public.book_stages FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Book Stages
+DROP POLICY IF EXISTS "stages_select_policy" ON public.book_stages;
+CREATE POLICY "stages_select_policy" ON public.book_stages FOR SELECT USING (true);
+DROP POLICY IF EXISTS "stages_admin_policy" ON public.book_stages;
+CREATE POLICY "stages_admin_policy" ON public.book_stages FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de projetos" ON public.projects;
-CREATE POLICY "Leitura pública de projetos" ON public.projects FOR SELECT USING (is_public = true);
-DROP POLICY IF EXISTS "Admin gerencia projetos" ON public.projects;
-CREATE POLICY "Admin gerencia projetos" ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Projects
+DROP POLICY IF EXISTS "projects_select_policy" ON public.projects;
+CREATE POLICY "projects_select_policy" ON public.projects FOR SELECT USING (is_public = true);
+DROP POLICY IF EXISTS "projects_admin_policy" ON public.projects;
+CREATE POLICY "projects_admin_policy" ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de atualizações" ON public.updates;
-CREATE POLICY "Leitura pública de atualizações" ON public.updates FOR SELECT USING (published = true);
-DROP POLICY IF EXISTS "Admin gerencia atualizações" ON public.updates;
-CREATE POLICY "Admin gerencia atualizações" ON public.updates FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Updates
+DROP POLICY IF EXISTS "updates_select_policy" ON public.updates;
+CREATE POLICY "updates_select_policy" ON public.updates FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "updates_admin_policy" ON public.updates;
+CREATE POLICY "updates_admin_policy" ON public.updates FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de textos" ON public.texts;
-CREATE POLICY "Leitura pública de textos" ON public.texts FOR SELECT USING (published = true);
-DROP POLICY IF EXISTS "Admin gerencia textos" ON public.texts;
-CREATE POLICY "Admin gerencia textos" ON public.texts FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Texts
+DROP POLICY IF EXISTS "texts_select_policy" ON public.texts;
+CREATE POLICY "texts_select_policy" ON public.texts FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "texts_admin_policy" ON public.texts;
+CREATE POLICY "texts_admin_policy" ON public.texts FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de timeline" ON public.timeline;
-CREATE POLICY "Leitura pública de timeline" ON public.timeline FOR SELECT USING (published = true);
-DROP POLICY IF EXISTS "Admin gerencia timeline" ON public.timeline;
-CREATE POLICY "Admin gerencia timeline" ON public.timeline FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Timeline
+DROP POLICY IF EXISTS "timeline_select_policy" ON public.timeline;
+CREATE POLICY "timeline_select_policy" ON public.timeline FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "timeline_admin_policy" ON public.timeline;
+CREATE POLICY "timeline_admin_policy" ON public.timeline FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de galeria" ON public.gallery;
-CREATE POLICY "Leitura pública de galeria" ON public.gallery FOR SELECT USING (published = true);
-DROP POLICY IF EXISTS "Admin gerencia galeria" ON public.gallery;
-CREATE POLICY "Admin gerencia galeria" ON public.gallery FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Gallery
+DROP POLICY IF EXISTS "gallery_select_policy" ON public.gallery;
+CREATE POLICY "gallery_select_policy" ON public.gallery FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "gallery_admin_policy" ON public.gallery;
+CREATE POLICY "gallery_admin_policy" ON public.gallery FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Leitura pública de configurações" ON public.site_settings;
-CREATE POLICY "Leitura pública de configurações" ON public.site_settings FOR SELECT USING (true);
-DROP POLICY IF EXISTS "Admin gerencia configurações" ON public.site_settings;
-CREATE POLICY "Admin gerencia configurações" ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+-- Site Settings
+DROP POLICY IF EXISTS "settings_select_policy" ON public.site_settings;
+CREATE POLICY "settings_select_policy" ON public.site_settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "settings_admin_policy" ON public.site_settings;
+CREATE POLICY "settings_admin_policy" ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- STORAGE BUCKET
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('author-assets', 'author-assets', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
-DROP POLICY IF EXISTS "Leitura pública de assets" ON storage.objects;
-CREATE POLICY "Leitura pública de assets" ON storage.objects FOR SELECT USING (bucket_id = 'author-assets');
+DROP POLICY IF EXISTS "assets_select_policy" ON storage.objects;
+CREATE POLICY "assets_select_policy" ON storage.objects FOR SELECT USING (bucket_id = 'author-assets');
 
-DROP POLICY IF EXISTS "Upload permitido apenas para autenticados" ON storage.objects;
-CREATE POLICY "Upload permitido apenas para autenticados" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'author-assets');
+DROP POLICY IF EXISTS "assets_insert_policy" ON storage.objects;
+CREATE POLICY "assets_insert_policy" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'author-assets');
 
-DROP POLICY IF EXISTS "Atualização permitida apenas para autenticados" ON storage.objects;
-CREATE POLICY "Atualização permitida apenas para autenticados" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'author-assets');
+DROP POLICY IF EXISTS "assets_update_policy" ON storage.objects;
+CREATE POLICY "assets_update_policy" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'author-assets');
 
-DROP POLICY IF EXISTS "Remoção permitida apenas para autenticados" ON storage.objects;
-CREATE POLICY "Remoção permitida apenas para autenticados" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'author-assets');
+DROP POLICY IF EXISTS "assets_delete_policy" ON storage.objects;
+CREATE POLICY "assets_delete_policy" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'author-assets');
 `;
 
   const copySql = () => {
