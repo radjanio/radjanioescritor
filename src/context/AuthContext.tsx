@@ -125,19 +125,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // Direct admin login fallback (when author is setting up the site or testing)
-    // Default admin password for initial author access or custom password
-    if (pass === 'admin123' || pass === 'radjanio2026' || pass.length >= 6) {
-      const sess = { authenticated: true, email: email || 'radjaniokk@gmail.com', time: Date.now() };
-      localStorage.setItem(LOCAL_AUTH_KEY, JSON.stringify(sess));
-      setIsAuthenticated(true);
-      setUserEmail(sess.email);
-      return { success: true };
+    if (!live || !supabase) {
+      return {
+        success: false,
+        error: 'O Supabase não está configurado. Conecte sua URL e chave Anon nas variáveis de ambiente (.env) para habilitar o login seguro do autor.'
+      };
     }
 
     return {
       success: false,
-      error: 'Senha incorreta. (Para acesso inicial, use a senha padrão: admin123 ou conecte seu Supabase Auth)'
+      error: 'E-mail ou senha incorretos.'
     };
   };
 

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
-import { Sun, Moon, Menu, X, BookOpen, Feather, Lock } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 interface NavbarProps {
   currentPath: string;
@@ -10,8 +8,6 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, authorName = 'Radjanio Silva Souza' }) => {
-  const { theme, toggleTheme } = useTheme();
-  const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -75,42 +71,12 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, authorNam
           })}
         </nav>
 
-        {/* Actions (Theme toggle, Admin button, Mobile toggle) */}
-        <div className="flex items-center space-x-2">
-          {/* Theme Switcher */}
-          <button
-            onClick={toggleTheme}
-            aria-label="Alternar tema"
-            className="p-2 text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors cursor-pointer rounded-sm hover:bg-stone-200/50 dark:hover:bg-stone-900"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 stroke-[1.8]" />
-            ) : (
-              <Moon className="w-4 h-4 stroke-[1.8]" />
-            )}
-          </button>
-
-          {/* Admin shortcut */}
-          <button
-            onClick={() => handleNav(isAuthenticated ? '/admin' : '/admin/login')}
-            title={isAuthenticated ? 'Painel Administrativo' : 'Acesso do Autor'}
-            className="p-2 text-stone-500 hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-100 transition-colors cursor-pointer rounded-sm hover:bg-stone-200/50 dark:hover:bg-stone-900 relative"
-          >
-            {isAuthenticated ? (
-              <div className="relative">
-                <Feather className="w-4 h-4 text-amber-800 dark:text-amber-400 stroke-[1.8]" />
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-stone-950" />
-              </div>
-            ) : (
-              <Lock className="w-3.5 h-3.5 stroke-[1.8]" />
-            )}
-          </button>
-
-          {/* Mobile Menu Hamburger */}
+        {/* Actions (Mobile toggle only) */}
+        <div className="flex items-center lg:hidden">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Abrir menu"
-            className="lg:hidden p-2 text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white transition-colors cursor-pointer"
+            className="p-2 text-stone-700 dark:text-stone-300 hover:text-stone-950 dark:hover:text-white transition-colors cursor-pointer"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -137,18 +103,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, authorNam
                 </button>
               );
             })}
-          </div>
-
-          <div className="pt-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-stone-500">
-              {isAuthenticated ? 'Sessão do Autor Ativa' : 'Área Restrita'}
-            </span>
-            <button
-              onClick={() => handleNav(isAuthenticated ? '/admin' : '/admin/login')}
-              className="text-xs font-medium uppercase tracking-wider text-amber-800 dark:text-amber-400 hover:underline inline-flex items-center gap-1.5"
-            >
-              {isAuthenticated ? 'Abrir Painel' : 'Entrar como Autor'}
-            </button>
           </div>
         </div>
       )}

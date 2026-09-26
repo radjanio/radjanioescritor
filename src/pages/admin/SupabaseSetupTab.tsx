@@ -240,28 +240,44 @@ ALTER TABLE public.timeline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Leitura pública de livros" ON public.books;
 CREATE POLICY "Leitura pública de livros" ON public.books FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin gerencia livros" ON public.books;
 CREATE POLICY "Admin gerencia livros" ON public.books FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de etapas" ON public.book_stages;
 CREATE POLICY "Leitura pública de etapas" ON public.book_stages FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin gerencia etapas" ON public.book_stages;
 CREATE POLICY "Admin gerencia etapas" ON public.book_stages FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de projetos" ON public.projects;
 CREATE POLICY "Leitura pública de projetos" ON public.projects FOR SELECT USING (is_public = true);
+DROP POLICY IF EXISTS "Admin gerencia projetos" ON public.projects;
 CREATE POLICY "Admin gerencia projetos" ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de atualizações" ON public.updates;
 CREATE POLICY "Leitura pública de atualizações" ON public.updates FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "Admin gerencia atualizações" ON public.updates;
 CREATE POLICY "Admin gerencia atualizações" ON public.updates FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de textos" ON public.texts;
 CREATE POLICY "Leitura pública de textos" ON public.texts FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "Admin gerencia textos" ON public.texts;
 CREATE POLICY "Admin gerencia textos" ON public.texts FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de timeline" ON public.timeline;
 CREATE POLICY "Leitura pública de timeline" ON public.timeline FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "Admin gerencia timeline" ON public.timeline;
 CREATE POLICY "Admin gerencia timeline" ON public.timeline FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de galeria" ON public.gallery;
 CREATE POLICY "Leitura pública de galeria" ON public.gallery FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "Admin gerencia galeria" ON public.gallery;
 CREATE POLICY "Admin gerencia galeria" ON public.gallery FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Leitura pública de configurações" ON public.site_settings;
 CREATE POLICY "Leitura pública de configurações" ON public.site_settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin gerencia configurações" ON public.site_settings;
 CREATE POLICY "Admin gerencia configurações" ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- STORAGE BUCKET
@@ -269,8 +285,17 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('author-assets', 'author-assets', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
+DROP POLICY IF EXISTS "Leitura pública de assets" ON storage.objects;
 CREATE POLICY "Leitura pública de assets" ON storage.objects FOR SELECT USING (bucket_id = 'author-assets');
+
+DROP POLICY IF EXISTS "Upload permitido apenas para autenticados" ON storage.objects;
 CREATE POLICY "Upload permitido apenas para autenticados" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'author-assets');
+
+DROP POLICY IF EXISTS "Atualização permitida apenas para autenticados" ON storage.objects;
+CREATE POLICY "Atualização permitida apenas para autenticados" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'author-assets');
+
+DROP POLICY IF EXISTS "Remoção permitida apenas para autenticados" ON storage.objects;
+CREATE POLICY "Remoção permitida apenas para autenticados" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'author-assets');
 `;
 
   const copySql = () => {

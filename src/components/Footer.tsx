@@ -150,15 +150,8 @@ export const Footer: React.FC<FooterProps> = ({ settings, navigate }) => {
         {/* Bottom bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-[11px] text-stone-500 space-y-3 sm:space-y-0">
           <p>© {currentYear} {settings.author_name}. Todos os direitos reservados.</p>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/admin/login')}
-              className="hover:text-stone-800 dark:hover:text-stone-300 transition-colors"
-            >
-              Área do Autor
-            </button>
-            <span>·</span>
-            <span>Plataforma Literária</span>
+          <div className="flex items-center gap-2">
+            <span>Plataforma Literária Oficial</span>
           </div>
         </div>
       </div>

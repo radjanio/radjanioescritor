@@ -9,7 +9,7 @@ interface AdminLoginPageProps {
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
   const { isAuthenticated, loginWithPassword, isSupabaseLive } = useAuth();
-  const [email, setEmail] = useState('radjaniokk@gmail.com');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
     setErrorMsg('');
     setLoading(true);
 
-    const res = await loginWithPassword(email, password);
+    const res = await loginWithPassword(email.trim(), password);
     setLoading(false);
 
     if (res.success) {
@@ -36,7 +36,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 py-16">
+    <div className="min-h-[75vh] flex flex-col items-center justify-center px-4 py-16">
       <SEOHead
         title="Acesso Administrativo"
         description="Painel de controle editorial exclusivo para o autor Radjanio Silva Souza."
@@ -52,7 +52,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
           </h1>
           <p className="text-xs text-stone-500">
             {isSupabaseLive
-              ? 'Conexão Supabase Auth ativa'
+              ? 'Autenticação Segura via Supabase Auth'
               : 'Painel Editorial — Radjanio Silva Souza'}
           </p>
         </div>
@@ -76,7 +76,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu.email@exemplo.com"
+                placeholder="autor@exemplo.com"
                 className="w-full pl-9 pr-3 py-2.5 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-sm text-xs text-stone-900 dark:text-stone-100 focus:outline-none focus:border-amber-700"
               />
             </div>
@@ -109,10 +109,16 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ navigate }) => {
           </button>
         </form>
 
-        <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 text-center">
+        <div className="pt-4 border-t border-stone-100 dark:border-stone-800/80 text-center space-y-3">
           <p className="text-[11px] text-stone-500 leading-relaxed">
-            Dica para teste inicial: utilize a senha <code className="bg-stone-100 dark:bg-stone-800 px-1 py-0.5 rounded text-amber-800 dark:text-amber-400">admin123</code> ou conecte suas credenciais reais do Supabase na aba de banco de dados.
+            Área de controle editorial restrita. Autenticação criptografada para o autor.
           </p>
+          <button
+            onClick={() => navigate('/')}
+            className="text-xs text-amber-800 dark:text-amber-400 hover:underline inline-block"
+          >
+            Voltar ao site público
+          </button>
         </div>
       </div>
     </div>
