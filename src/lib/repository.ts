@@ -1,6 +1,7 @@
 import {
   Book,
   BookStage,
+  BookStageStatus,
   Project,
   Update,
   TextItem,
@@ -9,6 +10,38 @@ import {
   SiteSettings
 } from '../types';
 import { getSupabase, isSupabaseConfigured } from './supabase';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isValidUuid(val: any): boolean {
+  return typeof val === 'string' && UUID_REGEX.test(val.trim());
+}
+
+export function sanitizeUuid(val: any): string | null {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  return UUID_REGEX.test(trimmed) ? trimmed : null;
+}
+
+export function sanitizeDate(val: any): string | null {
+  if (!val || typeof val !== 'string') return null;
+  const trimmed = val.trim();
+  if (trimmed === '') return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  const d = new Date(trimmed);
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split('T')[0];
+  }
+  return null;
+}
+
+export function sanitizeNumber(val: any): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  const num = Number(val);
+  return isNaN(num) ? null : num;
+}
 
 export function slugify(text: string): string {
   return text
@@ -36,7 +69,7 @@ const DEFAULT_SETTINGS: SiteSettings = {
   updated_at: new Date().toISOString()
 };
 
-// Local storage keys for pre-Supabase setup or offline buffer
+// Local storage buffer for offline fallback
 const STORAGE_PREFIX = 'radjanio_app_';
 function getLocal<T>(key: string, defaultVal: T): T {
   if (typeof window === 'undefined') return defaultVal;
@@ -79,18 +112,18 @@ export const repository = {
     const updated: SiteSettings = {
       ...current,
       ...settings,
+      id: current.id || 'a0000000-0000-0000-0000-000000000001',
       updated_at: new Date().toISOString()
     };
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase
-          .from('site_settings')
-          .upsert(updated, { onConflict: 'id' });
-        if (error) console.error('Erro ao atualizar configurações no Supabase:', error.message);
-      } catch (err) {
-        console.error('Falha na requisição de settings ao Supabase:', err);
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert(updated, { onConflict: 'id' });
+      if (error) {
+        console.error('Erro ao atualizar configurações no Supabase:', error.message);
+        throw new Error(`Falha ao salvar configurações no Supabase: ${error.message}`);
       }
     }
 
@@ -111,7 +144,7 @@ export const repository = {
         if (!error && data) {
           return data.map((b: any) => ({
             ...b,
-            stages: (b.stages || []).sort((x: BookStage, y: BookStage) => x.order_index - y.order_index)
+            stages: (b.stages || []).sort((x: BookStage, y: BookStage) => (x.order_index ?? 0) - (y.order_index ?? 0))
           }));
         }
       } catch (err) {
@@ -127,26 +160,39 @@ export const repository = {
   },
 
   async saveBook(bookData: Partial<Book>): Promise<Book> {
-    const books = getLocal<Book[]>('books', []);
-    const isNew = !bookData.id;
-    const id = bookData.id || crypto.randomUUID();
-    const slug = bookData.slug ? slugify(bookData.slug) : slugify(bookData.title || 'livro');
+    const books = await this.getBooks();
+    const isNew = !bookData.id || !isValidUuid(bookData.id);
+    const id = !isNew && bookData.id ? bookData.id : crypto.randomUUID();
+
+    // Auto-generate and ensure unique slug
+    let baseSlug = bookData.slug ? slugify(bookData.slug) : slugify(bookData.title || 'livro');
+    if (!baseSlug) baseSlug = 'livro-' + Math.random().toString(36).substring(2, 6);
+    let slug = baseSlug;
+
+    // Check for collision with a different book
+    const duplicate = books.find((b) => b.slug === slug && b.id !== id);
+    if (duplicate) {
+      slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+    }
+
+    const priceNum = sanitizeNumber(bookData.price);
+    const pageNum = sanitizeNumber(bookData.page_count);
 
     const newBook: Book = {
       id,
-      title: bookData.title || 'Sem título',
+      title: bookData.title?.trim() || 'Sem título',
       slug,
-      edition: bookData.edition || '',
-      description: bookData.description || '',
-      short_description: bookData.short_description || '',
-      genre: bookData.genre || 'Ficção',
-      price: bookData.price !== undefined ? bookData.price : null,
-      page_count: bookData.page_count !== undefined ? (bookData.page_count ? Number(bookData.page_count) : null) : null,
-      cover_url: bookData.cover_url || '',
-      store_url: bookData.store_url || '',
+      edition: bookData.edition?.trim() || '',
+      description: bookData.description?.trim() || '',
+      short_description: bookData.short_description?.trim() || '',
+      genre: bookData.genre?.trim() || 'Ficção Literária',
+      price: priceNum !== null ? priceNum : null,
+      page_count: pageNum !== null ? Math.round(pageNum) : null,
+      cover_url: bookData.cover_url?.trim() || '',
+      store_url: bookData.store_url?.trim() || '',
       status: bookData.status || 'Em desenvolvimento',
       progress: Math.min(100, Math.max(0, Number(bookData.progress) || 0)),
-      publication_date: bookData.publication_date || '',
+      publication_date: sanitizeDate(bookData.publication_date) || '',
       featured: Boolean(bookData.featured),
       is_demo: Boolean(bookData.is_demo),
       created_at: bookData.created_at || new Date().toISOString(),
@@ -156,32 +202,59 @@ export const repository = {
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        const { stages, ...dbBook } = newBook;
-        const { error } = await supabase.from('books').upsert(dbBook);
-        if (error) console.error('Erro ao salvar livro no Supabase:', error.message);
+      // Clean record for Supabase PostgreSQL (dates as null instead of empty strings)
+      const cleanDbBook = {
+        id: newBook.id,
+        title: newBook.title,
+        slug: newBook.slug,
+        edition: newBook.edition || null,
+        description: newBook.description,
+        short_description: newBook.short_description || null,
+        genre: newBook.genre,
+        price: newBook.price,
+        page_count: newBook.page_count,
+        cover_url: newBook.cover_url || null,
+        store_url: newBook.store_url || null,
+        status: newBook.status,
+        progress: newBook.progress,
+        publication_date: sanitizeDate(newBook.publication_date), // NULL if empty string
+        featured: newBook.featured,
+        is_demo: newBook.is_demo,
+        created_at: newBook.created_at,
+        updated_at: newBook.updated_at
+      };
 
-        // Save stages
-        if (stages && stages.length > 0) {
-          const formattedStages = stages.map((s, idx) => ({
-            ...s,
-            id: s.id || crypto.randomUUID(),
-            book_id: id,
-            order_index: idx
-          }));
-          await supabase.from('book_stages').delete().eq('book_id', id);
-          await supabase.from('book_stages').insert(formattedStages);
+      const { error } = await supabase.from('books').upsert(cleanDbBook);
+      if (error) {
+        console.error('Erro ao salvar livro no Supabase:', error.message);
+        throw new Error(`Erro ao salvar livro no Supabase: ${error.message}`);
+      }
+
+      // Save stages with valid UUIDs
+      if (newBook.stages && Array.isArray(newBook.stages) && newBook.stages.length > 0) {
+        const formattedStages = newBook.stages.map((s, idx) => ({
+          id: isValidUuid(s.id) ? s.id : crypto.randomUUID(),
+          book_id: id,
+          title: s.title?.trim() || `Etapa ${idx + 1}`,
+          description: s.description?.trim() || '',
+          status: (['Pendente', 'Em andamento', 'Concluído'].includes(s.status) ? s.status : 'Pendente') as BookStageStatus,
+          order_index: idx
+        }));
+
+        await supabase.from('book_stages').delete().eq('book_id', id);
+        const { error: stageErr } = await supabase.from('book_stages').insert(formattedStages);
+        if (stageErr) {
+          console.warn('Aviso ao sincronizar etapas do livro:', stageErr.message);
         }
-      } catch (err) {
-        console.error('Falha de rede ao salvar livro:', err);
       }
     }
 
+    const localList = getLocal<Book[]>('books', []);
     let updatedList: Book[];
     if (isNew) {
-      updatedList = [newBook, ...books];
+      updatedList = [newBook, ...localList.filter((b) => b.id !== id)];
     } else {
-      updatedList = books.map((b) => (b.id === id ? newBook : b));
+      updatedList = localList.map((b) => (b.id === id ? newBook : b));
     }
     setLocal('books', updatedList);
     return newBook;
@@ -192,9 +265,14 @@ export const repository = {
     if (supabase && isSupabaseConfigured()) {
       try {
         await supabase.from('book_stages').delete().eq('book_id', id);
-        await supabase.from('books').delete().eq('id', id);
-      } catch (err) {
+        const { error } = await supabase.from('books').delete().eq('id', id);
+        if (error) {
+          console.error('Erro ao deletar livro no Supabase:', error.message);
+          throw new Error(`Erro ao excluir livro no Supabase: ${error.message}`);
+        }
+      } catch (err: any) {
         console.error('Erro ao deletar livro no Supabase:', err);
+        throw err;
       }
     }
     const books = getLocal<Book[]>('books', []);
@@ -226,22 +304,30 @@ export const repository = {
   },
 
   async saveProject(projData: Partial<Project>): Promise<Project> {
-    const projects = getLocal<Project[]>('projects', []);
-    const isNew = !projData.id;
-    const id = projData.id || crypto.randomUUID();
-    const slug = projData.slug ? slugify(projData.slug) : slugify(projData.title || 'projeto');
+    const projects = await this.getProjects(true);
+    const isNew = !projData.id || !isValidUuid(projData.id);
+    const id = !isNew && projData.id ? projData.id : crypto.randomUUID();
+
+    let baseSlug = projData.slug ? slugify(projData.slug) : slugify(projData.title || 'projeto');
+    if (!baseSlug) baseSlug = 'projeto-' + Math.random().toString(36).substring(2, 6);
+    let slug = baseSlug;
+
+    const duplicate = projects.find((p) => p.slug === slug && p.id !== id);
+    if (duplicate) {
+      slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+    }
 
     const newProject: Project = {
       id,
-      title: projData.title || 'Sem título',
+      title: projData.title?.trim() || 'Sem título',
       slug,
-      description: projData.description || '',
-      genre: projData.genre || 'Literatura',
+      description: projData.description?.trim() || '',
+      genre: projData.genre?.trim() || 'Literatura',
       status: projData.status || 'Em andamento',
       progress: Math.min(100, Math.max(0, Number(projData.progress) || 0)),
-      image_url: projData.image_url || '',
-      start_date: projData.start_date || '',
-      expected_release_date: projData.expected_release_date || '',
+      image_url: projData.image_url?.trim() || '',
+      start_date: sanitizeDate(projData.start_date) || '',
+      expected_release_date: sanitizeDate(projData.expected_release_date) || '',
       is_public: projData.is_public !== undefined ? projData.is_public : true,
       is_demo: Boolean(projData.is_demo),
       created_at: projData.created_at || new Date().toISOString(),
@@ -251,19 +337,36 @@ export const repository = {
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        const { stages, ...dbProj } = newProject;
-        await supabase.from('projects').upsert(dbProj);
-      } catch (err) {
-        console.error('Erro ao salvar projeto no Supabase:', err);
+      const cleanDbProj = {
+        id: newProject.id,
+        title: newProject.title,
+        slug: newProject.slug,
+        description: newProject.description,
+        genre: newProject.genre,
+        status: newProject.status,
+        progress: newProject.progress,
+        image_url: newProject.image_url || null,
+        start_date: sanitizeDate(newProject.start_date), // NULL if empty string
+        expected_release_date: sanitizeDate(newProject.expected_release_date), // NULL if empty string
+        is_public: newProject.is_public,
+        is_demo: newProject.is_demo,
+        created_at: newProject.created_at,
+        updated_at: newProject.updated_at
+      };
+
+      const { error } = await supabase.from('projects').upsert(cleanDbProj);
+      if (error) {
+        console.error('Erro ao salvar projeto no Supabase:', error.message);
+        throw new Error(`Erro ao salvar projeto no Supabase: ${error.message}`);
       }
     }
 
+    const localList = getLocal<Project[]>('projects', []);
     let updatedList: Project[];
     if (isNew) {
-      updatedList = [newProject, ...projects];
+      updatedList = [newProject, ...localList.filter((p) => p.id !== id)];
     } else {
-      updatedList = projects.map((p) => (p.id === id ? newProject : p));
+      updatedList = localList.map((p) => (p.id === id ? newProject : p));
     }
     setLocal('projects', updatedList);
     return newProject;
@@ -272,10 +375,10 @@ export const repository = {
   async deleteProject(id: string): Promise<void> {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('projects').delete().eq('id', id);
-      } catch (err) {
-        console.error('Erro ao deletar projeto no Supabase:', err);
+      const { error } = await supabase.from('projects').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao deletar projeto no Supabase:', error.message);
+        throw new Error(`Erro ao excluir projeto no Supabase: ${error.message}`);
       }
     }
     const projects = getLocal<Project[]>('projects', []);
@@ -323,21 +426,35 @@ export const repository = {
   },
 
   async saveUpdate(upData: Partial<Update>): Promise<Update> {
-    const updates = getLocal<Update[]>('updates', []);
-    const isNew = !upData.id;
-    const id = upData.id || crypto.randomUUID();
-    const slug = upData.slug ? slugify(upData.slug) : slugify(upData.title || 'atualizacao');
+    const updates = await this.getUpdates(true);
+    const isNew = !upData.id || !isValidUuid(upData.id);
+    const id = !isNew && upData.id ? upData.id : crypto.randomUUID();
+
+    let baseSlug = upData.slug ? slugify(upData.slug) : slugify(upData.title || 'atualizacao');
+    if (!baseSlug) baseSlug = 'atualizacao-' + Math.random().toString(36).substring(2, 6);
+    let slug = baseSlug;
+
+    const duplicate = updates.find((u) => u.slug === slug && u.id !== id);
+    if (duplicate) {
+      slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+    }
+
+    const cleanBookId = sanitizeUuid(upData.book_id);
+    const cleanProjId = sanitizeUuid(upData.project_id);
+
+    const validCategories = ['Escrita', 'Capítulos', 'Ideias', 'Revisão', 'Capa', 'Publicação', 'Desenvolvimento', 'Reflexões'];
+    const category = validCategories.includes(upData.category || '') ? (upData.category as any) : 'Escrita';
 
     const newUpdate: Update = {
       id,
-      title: upData.title || 'Sem título',
+      title: upData.title?.trim() || 'Sem título',
       slug,
-      content: upData.content || '',
-      excerpt: upData.excerpt || upData.content?.substring(0, 160) || '',
-      image_url: upData.image_url || '',
-      category: upData.category || 'Escrita',
-      book_id: upData.book_id || null,
-      project_id: upData.project_id || null,
+      content: upData.content?.trim() || '',
+      excerpt: upData.excerpt?.trim() || upData.content?.substring(0, 160) || '',
+      image_url: upData.image_url?.trim() || '',
+      category,
+      book_id: cleanBookId,
+      project_id: cleanProjId,
       book_title: upData.book_title || '',
       project_title: upData.project_title || '',
       published: upData.published !== undefined ? upData.published : true,
@@ -348,19 +465,35 @@ export const repository = {
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        const { book_title, project_title, ...dbRecord } = newUpdate;
-        await supabase.from('updates').upsert(dbRecord);
-      } catch (err) {
-        console.error('Erro ao salvar atualização no Supabase:', err);
+      const cleanDbUpdate = {
+        id: newUpdate.id,
+        title: newUpdate.title,
+        slug: newUpdate.slug,
+        content: newUpdate.content,
+        excerpt: newUpdate.excerpt || null,
+        image_url: newUpdate.image_url || null,
+        category: newUpdate.category,
+        book_id: newUpdate.book_id, // NULL if not valid UUID
+        project_id: newUpdate.project_id, // NULL if not valid UUID
+        published: newUpdate.published,
+        is_demo: newUpdate.is_demo,
+        created_at: newUpdate.created_at,
+        updated_at: newUpdate.updated_at
+      };
+
+      const { error } = await supabase.from('updates').upsert(cleanDbUpdate);
+      if (error) {
+        console.error('Erro ao salvar atualização no Supabase:', error.message);
+        throw new Error(`Erro ao salvar atualização no Supabase: ${error.message}`);
       }
     }
 
+    const localList = getLocal<Update[]>('updates', []);
     let updatedList: Update[];
     if (isNew) {
-      updatedList = [newUpdate, ...updates];
+      updatedList = [newUpdate, ...localList.filter((u) => u.id !== id)];
     } else {
-      updatedList = updates.map((u) => (u.id === id ? newUpdate : u));
+      updatedList = localList.map((u) => (u.id === id ? newUpdate : u));
     }
     setLocal('updates', updatedList);
     return newUpdate;
@@ -369,10 +502,10 @@ export const repository = {
   async deleteUpdate(id: string): Promise<void> {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('updates').delete().eq('id', id);
-      } catch (err) {
-        console.error('Erro ao excluir atualização no Supabase:', err);
+      const { error } = await supabase.from('updates').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao excluir atualização no Supabase:', error.message);
+        throw new Error(`Erro ao excluir atualização: ${error.message}`);
       }
     }
     const updates = getLocal<Update[]>('updates', []);
@@ -404,18 +537,29 @@ export const repository = {
   },
 
   async saveText(textData: Partial<TextItem>): Promise<TextItem> {
-    const texts = getLocal<TextItem[]>('texts', []);
-    const isNew = !textData.id;
-    const id = textData.id || crypto.randomUUID();
-    const slug = textData.slug ? slugify(textData.slug) : slugify(textData.title || 'texto');
+    const texts = await this.getTexts(true);
+    const isNew = !textData.id || !isValidUuid(textData.id);
+    const id = !isNew && textData.id ? textData.id : crypto.randomUUID();
+
+    let baseSlug = textData.slug ? slugify(textData.slug) : slugify(textData.title || 'texto');
+    if (!baseSlug) baseSlug = 'texto-' + Math.random().toString(36).substring(2, 6);
+    let slug = baseSlug;
+
+    const duplicate = texts.find((t) => t.slug === slug && t.id !== id);
+    if (duplicate) {
+      slug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
+    }
+
+    const validCategories = ['Poemas', 'Contos', 'Crônicas', 'Reflexões', 'Fragmentos'];
+    const category = validCategories.includes(textData.category || '') ? (textData.category as any) : 'Crônicas';
 
     const newText: TextItem = {
       id,
-      title: textData.title || 'Sem título',
+      title: textData.title?.trim() || 'Sem título',
       slug,
-      content: textData.content || '',
-      category: textData.category || 'Crônicas',
-      image_url: textData.image_url || '',
+      content: textData.content?.trim() || '',
+      category,
+      image_url: textData.image_url?.trim() || '',
       published: textData.published !== undefined ? textData.published : true,
       is_demo: Boolean(textData.is_demo),
       created_at: textData.created_at || new Date().toISOString(),
@@ -424,18 +568,32 @@ export const repository = {
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('texts').upsert(newText);
-      } catch (err) {
-        console.error('Erro ao salvar texto no Supabase:', err);
+      const cleanDbText = {
+        id: newText.id,
+        title: newText.title,
+        slug: newText.slug,
+        content: newText.content,
+        category: newText.category,
+        image_url: newText.image_url || null,
+        published: newText.published,
+        is_demo: newText.is_demo,
+        created_at: newText.created_at,
+        updated_at: newText.updated_at
+      };
+
+      const { error } = await supabase.from('texts').upsert(cleanDbText);
+      if (error) {
+        console.error('Erro ao salvar texto no Supabase:', error.message);
+        throw new Error(`Erro ao salvar texto no Supabase: ${error.message}`);
       }
     }
 
+    const localList = getLocal<TextItem[]>('texts', []);
     let updatedList: TextItem[];
     if (isNew) {
-      updatedList = [newText, ...texts];
+      updatedList = [newText, ...localList.filter((t) => t.id !== id)];
     } else {
-      updatedList = texts.map((t) => (t.id === id ? newText : t));
+      updatedList = localList.map((t) => (t.id === id ? newText : t));
     }
     setLocal('texts', updatedList);
     return newText;
@@ -444,10 +602,10 @@ export const repository = {
   async deleteText(id: string): Promise<void> {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('texts').delete().eq('id', id);
-      } catch (err) {
-        console.error('Erro ao excluir texto no Supabase:', err);
+      const { error } = await supabase.from('texts').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao excluir texto no Supabase:', error.message);
+        throw new Error(`Erro ao excluir texto: ${error.message}`);
       }
     }
     const texts = getLocal<TextItem[]>('texts', []);
@@ -475,17 +633,19 @@ export const repository = {
   },
 
   async saveTimelineEvent(eventData: Partial<TimelineEvent>): Promise<TimelineEvent> {
-    const list = getLocal<TimelineEvent[]>('timeline', []);
-    const isNew = !eventData.id;
-    const id = eventData.id || crypto.randomUUID();
+    const list = await this.getTimeline(true);
+    const isNew = !eventData.id || !isValidUuid(eventData.id);
+    const id = !isNew && eventData.id ? eventData.id : crypto.randomUUID();
+
+    const cleanDate = sanitizeDate(eventData.event_date) || new Date().toISOString().split('T')[0];
 
     const newEvent: TimelineEvent = {
       id,
-      title: eventData.title || 'Marco Literário',
-      description: eventData.description || '',
-      event_date: eventData.event_date || new Date().toISOString().split('T')[0],
-      image_url: eventData.image_url || '',
-      order_index: eventData.order_index !== undefined ? eventData.order_index : list.length,
+      title: eventData.title?.trim() || 'Marco Literário',
+      description: eventData.description?.trim() || '',
+      event_date: cleanDate,
+      image_url: eventData.image_url?.trim() || '',
+      order_index: eventData.order_index !== undefined ? Number(eventData.order_index) : list.length,
       published: eventData.published !== undefined ? eventData.published : true,
       is_demo: Boolean(eventData.is_demo),
       created_at: eventData.created_at || new Date().toISOString()
@@ -493,18 +653,31 @@ export const repository = {
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('timeline').upsert(newEvent);
-      } catch (err) {
-        console.error('Erro ao salvar evento da timeline:', err);
+      const cleanDbEvent = {
+        id: newEvent.id,
+        title: newEvent.title,
+        description: newEvent.description,
+        event_date: newEvent.event_date,
+        image_url: newEvent.image_url || null,
+        order_index: newEvent.order_index,
+        published: newEvent.published,
+        is_demo: newEvent.is_demo,
+        created_at: newEvent.created_at
+      };
+
+      const { error } = await supabase.from('timeline').upsert(cleanDbEvent);
+      if (error) {
+        console.error('Erro ao salvar evento da timeline:', error.message);
+        throw new Error(`Erro ao salvar marco na timeline: ${error.message}`);
       }
     }
 
+    const localList = getLocal<TimelineEvent[]>('timeline', []);
     let updatedList: TimelineEvent[];
     if (isNew) {
-      updatedList = [...list, newEvent];
+      updatedList = [...localList.filter((e) => e.id !== id), newEvent];
     } else {
-      updatedList = list.map((ev) => (ev.id === id ? newEvent : ev));
+      updatedList = localList.map((ev) => (ev.id === id ? newEvent : ev));
     }
     setLocal('timeline', updatedList);
     return newEvent;
@@ -513,10 +686,10 @@ export const repository = {
   async deleteTimelineEvent(id: string): Promise<void> {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('timeline').delete().eq('id', id);
-      } catch (err) {
-        console.error('Erro ao excluir timeline:', err);
+      const { error } = await supabase.from('timeline').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao excluir timeline:', error.message);
+        throw new Error(`Erro ao excluir marco da timeline: ${error.message}`);
       }
     }
     const list = getLocal<TimelineEvent[]>('timeline', []);
@@ -543,18 +716,24 @@ export const repository = {
   },
 
   async saveGalleryItem(gData: Partial<GalleryItem>): Promise<GalleryItem> {
-    const list = getLocal<GalleryItem[]>('gallery', []);
-    const isNew = !gData.id;
-    const id = gData.id || crypto.randomUUID();
+    const list = await this.getGallery(true);
+    const isNew = !gData.id || !isValidUuid(gData.id);
+    const id = !isNew && gData.id ? gData.id : crypto.randomUUID();
+
+    const cleanBookId = sanitizeUuid(gData.book_id);
+    const cleanProjId = sanitizeUuid(gData.project_id);
+
+    const validCategories = ['Capas', 'Conceitos', 'Ilustrações', 'Fotografias', 'Outros'];
+    const category = validCategories.includes(gData.category || '') ? (gData.category as any) : 'Conceitos';
 
     const newItem: GalleryItem = {
       id,
-      title: gData.title || 'Arte / Fotografia',
-      description: gData.description || '',
-      image_url: gData.image_url || '',
-      category: gData.category || 'Conceitos',
-      book_id: gData.book_id || null,
-      project_id: gData.project_id || null,
+      title: gData.title?.trim() || 'Arte / Fotografia',
+      description: gData.description?.trim() || '',
+      image_url: gData.image_url?.trim() || '',
+      category,
+      book_id: cleanBookId,
+      project_id: cleanProjId,
       book_title: gData.book_title || '',
       project_title: gData.project_title || '',
       published: gData.published !== undefined ? gData.published : true,
@@ -564,19 +743,32 @@ export const repository = {
 
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        const { book_title, project_title, ...dbRecord } = newItem;
-        await supabase.from('gallery').upsert(dbRecord);
-      } catch (err) {
-        console.error('Erro ao salvar item na galeria:', err);
+      const cleanDbItem = {
+        id: newItem.id,
+        title: newItem.title,
+        description: newItem.description || null,
+        image_url: newItem.image_url,
+        category: newItem.category,
+        book_id: newItem.book_id, // NULL if empty string
+        project_id: newItem.project_id, // NULL if empty string
+        published: newItem.published,
+        is_demo: newItem.is_demo,
+        created_at: newItem.created_at
+      };
+
+      const { error } = await supabase.from('gallery').upsert(cleanDbItem);
+      if (error) {
+        console.error('Erro ao salvar item na galeria:', error.message);
+        throw new Error(`Erro ao salvar na galeria: ${error.message}`);
       }
     }
 
+    const localList = getLocal<GalleryItem[]>('gallery', []);
     let updatedList: GalleryItem[];
     if (isNew) {
-      updatedList = [newItem, ...list];
+      updatedList = [newItem, ...localList.filter((g) => g.id !== id)];
     } else {
-      updatedList = list.map((g) => (g.id === id ? newItem : g));
+      updatedList = localList.map((g) => (g.id === id ? newItem : g));
     }
     setLocal('gallery', updatedList);
     return newItem;
@@ -585,10 +777,10 @@ export const repository = {
   async deleteGalleryItem(id: string): Promise<void> {
     const supabase = getSupabase();
     if (supabase && isSupabaseConfigured()) {
-      try {
-        await supabase.from('gallery').delete().eq('id', id);
-      } catch (err) {
-        console.error('Erro ao excluir item da galeria:', err);
+      const { error } = await supabase.from('gallery').delete().eq('id', id);
+      if (error) {
+        console.error('Erro ao excluir item da galeria:', error.message);
+        throw new Error(`Erro ao excluir imagem da galeria: ${error.message}`);
       }
     }
     const list = getLocal<GalleryItem[]>('gallery', []);
@@ -596,10 +788,6 @@ export const repository = {
   },
 
   // ===================== DEMO DATA MANAGEMENT =====================
-  // Note: Following rule 27:
-  // "Não invente livros, preços ou informações biográficas de Radjanio Silva Souza.
-  // Caso seja necessário criar dados de demonstração para testar a interface,
-  // deixe-os claramente identificados como dados de exemplo e facilite sua remoção."
   loadIdentifiedSampleData(): void {
     const sampleBooks: Book[] = [
       {
@@ -621,164 +809,16 @@ export const repository = {
         is_demo: true,
         created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
         stages: [
-          { id: 'stg-1', book_id: 'demo-book-1', title: 'Planejamento e Estruturação', status: 'Concluído', order_index: 0 },
-          { id: 'stg-2', book_id: 'demo-book-1', title: 'Primeiro Rascunho', status: 'Concluído', order_index: 1 },
-          { id: 'stg-3', book_id: 'demo-book-1', title: 'Revisão Textual Crítica', status: 'Concluído', order_index: 2 },
-          { id: 'stg-4', book_id: 'demo-book-1', title: 'Diagramação e Capa', status: 'Concluído', order_index: 3 },
-          { id: 'stg-5', book_id: 'demo-book-1', title: 'Lançamento Editorial', status: 'Concluído', order_index: 4 }
+          { id: crypto.randomUUID(), book_id: 'demo-book-1', title: 'Planejamento e Estruturação', status: 'Concluído', order_index: 0 },
+          { id: crypto.randomUUID(), book_id: 'demo-book-1', title: 'Primeiro Rascunho', status: 'Concluído', order_index: 1 },
+          { id: crypto.randomUUID(), book_id: 'demo-book-1', title: 'Revisão Textual Crítica', status: 'Concluído', order_index: 2 },
+          { id: crypto.randomUUID(), book_id: 'demo-book-1', title: 'Diagramação e Capa', status: 'Concluído', order_index: 3 },
+          { id: crypto.randomUUID(), book_id: 'demo-book-1', title: 'Lançamento Editorial', status: 'Concluído', order_index: 4 }
         ]
-      },
-      {
-        id: 'demo-book-2',
-        title: '[Exemplo] Geografia dos Sentimentos',
-        slug: 'exemplo-geografia-dos-sentimentos',
-        edition: 'Edição Especial (Exemplo)',
-        description: 'Coletânea em desenvolvimento que mapeia a solidão contemporânea através de breves crônicas de encontros inesperados.',
-        short_description: 'Mapeamento sensível da solidão e dos encontros na modernidade.',
-        genre: 'Crônicas & Ensaios',
-        price: 42.00,
-        page_count: 240,
-        cover_url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80',
-        store_url: '',
-        status: 'Em desenvolvimento',
-        progress: 72,
-        publication_date: '',
-        featured: false,
-        is_demo: true,
-        created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-        stages: [
-          { id: 'stg-21', book_id: 'demo-book-2', title: 'Pesquisa e Argumento', status: 'Concluído', order_index: 0 },
-          { id: 'stg-22', book_id: 'demo-book-2', title: 'Escrita dos Capítulos', status: 'Em andamento', order_index: 1 },
-          { id: 'stg-23', book_id: 'demo-book-2', title: 'Revisão Editorial', status: 'Pendente', order_index: 2 },
-          { id: 'stg-24', book_id: 'demo-book-2', title: 'Projeto Gráfico', status: 'Pendente', order_index: 3 },
-          { id: 'stg-25', book_id: 'demo-book-2', title: 'Publicação', status: 'Pendente', order_index: 4 }
-        ]
-      }
-    ];
-
-    const sampleProjects: Project[] = [
-      {
-        id: 'demo-proj-1',
-        title: '[Exemplo de Projeto] Fragmentos de Crepúsculo',
-        slug: 'exemplo-projeto-fragmentos-de-crepusculo',
-        description: 'Projeto narrativo experimental investigando perspectivas polifônicas da vida urbana à meia-noite.',
-        genre: 'Romance Psicológico',
-        status: 'Em escrita ativa',
-        progress: 64,
-        image_url: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&w=800&q=80',
-        start_date: '2025-01-10',
-        expected_release_date: '2026-11-20',
-        is_public: true,
-        is_demo: true,
-        created_at: new Date(Date.now() - 45 * 86400000).toISOString()
-      }
-    ];
-
-    const sampleUpdates: Update[] = [
-      {
-        id: 'demo-up-1',
-        title: '[Exemplo] O ritmo da prosa no silêncio da madrugada',
-        slug: 'exemplo-o-ritmo-da-prosa',
-        excerpt: 'Reflexões sobre a cadência das frases e a busca pelo tom exato de cada cena durante a escrita noturna.',
-        content: `A escrita exige um tipo especial de escuta. Não apenas das palavras faladas, mas daquela ressonância interna que vibra quando a frase atinge o compasso exato.\n\nDurante a madrugada, quando os ruídos da cidade arrefecem, as personagens parecem sussurrar com maior clareza. Este registro serve para documentar a busca constante pela economia da linguagem: cortar o excesso para que a essência respire.`,
-        category: 'Escrita',
-        book_id: 'demo-book-2',
-        book_title: '[Exemplo] Geografia dos Sentimentos',
-        published: true,
-        is_demo: true,
-        image_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80',
-        created_at: new Date(Date.now() - 7 * 86400000).toISOString()
-      },
-      {
-        id: 'demo-up-2',
-        title: '[Exemplo] Estruturando os capítulos centrais',
-        slug: 'exemplo-estruturando-os-capitulos',
-        excerpt: 'Notas sobre a arquitetura dos pontos de virada no manuscrito atual.',
-        content: `Reorganizar os pontos de virada é como reconstruir a fundação de uma casa sem derrubar o telhado. Hoje concluo a décima segunda versão do esquema dos capítulos centrais.`,
-        category: 'Capítulos',
-        project_id: 'demo-proj-1',
-        project_title: '[Exemplo de Projeto] Fragmentos de Crepúsculo',
-        published: true,
-        is_demo: true,
-        created_at: new Date(Date.now() - 14 * 86400000).toISOString()
-      }
-    ];
-
-    const sampleTexts: TextItem[] = [
-      {
-        id: 'demo-txt-1',
-        title: '[Exemplo] Elegia para o que não dissemos',
-        slug: 'exemplo-elegia-para-o-que-nao-dissemos',
-        category: 'Poemas',
-        content: `Havia um silêncio suspenso entre a xícara e a mesa,\numa palavra não dita que pesava séculos.\n\nOlhamos a tarde escorrer pelos vidros molhados,\nenquanto a chuva lavava a memória das ruas.\n\nO que ficou por dizer\nhoje habita as margens deste caderno.`,
-        published: true,
-        is_demo: true,
-        created_at: new Date(Date.now() - 10 * 86400000).toISOString()
-      },
-      {
-        id: 'demo-txt-2',
-        title: '[Exemplo] O artesão de tempestades',
-        slug: 'exemplo-o-artesao-de-tempestades',
-        category: 'Crônicas',
-        content: `Ele guardava vidros de vento nas prateleiras mais altas do ateliê. Dizia que cada estação do ano soprava em uma tonalidade diferente — o outono com gosto de folha seca e cobre, a primavera com o aroma denso da terra despertando.\n\nNinguém sabia ao certo se era loucura ou poesia. Mas quando abria a porta, a cidade inteira parecia desacelerar para escutar o que o homem tinha a dizer.`,
-        published: true,
-        is_demo: true,
-        created_at: new Date(Date.now() - 20 * 86400000).toISOString()
-      }
-    ];
-
-    const sampleTimeline: TimelineEvent[] = [
-      {
-        id: 'demo-tl-1',
-        title: '[Exemplo] Primeiros manuscritos e cadernos de estudo',
-        description: 'Início das anotações e pesquisas literárias intensivas, consolidando a voz e a temática da escrita.',
-        event_date: '2023-03-01',
-        order_index: 0,
-        published: true,
-        is_demo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'demo-tl-2',
-        title: '[Exemplo] Publicação do primeiro título',
-        description: 'Lançamento oficial da primeira obra e aproximação com os primeiros leitores.',
-        event_date: '2025-08-15',
-        order_index: 1,
-        published: true,
-        is_demo: true,
-        created_at: new Date().toISOString()
-      }
-    ];
-
-    const sampleGallery: GalleryItem[] = [
-      {
-        id: 'demo-gal-1',
-        title: '[Exemplo] Estudo de Capa e Paleta',
-        description: 'Exploração cromática e tipográfica para edição especial.',
-        image_url: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
-        category: 'Capas',
-        published: true,
-        is_demo: true,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'demo-gal-2',
-        title: '[Exemplo] Caderno de Anotações',
-        description: 'Registro do processo manual de manuscrito e rascunhos.',
-        image_url: 'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&w=800&q=80',
-        category: 'Fotografias',
-        published: true,
-        is_demo: true,
-        created_at: new Date().toISOString()
       }
     ];
 
     setLocal('books', sampleBooks);
-    setLocal('projects', sampleProjects);
-    setLocal('updates', sampleUpdates);
-    setLocal('texts', sampleTexts);
-    setLocal('timeline', sampleTimeline);
-    setLocal('gallery', sampleGallery);
   },
 
   clearDemoData(): void {

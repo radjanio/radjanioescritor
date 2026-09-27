@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Update, UpdateCategory, Book, Project } from '../../types';
 import { repository, slugify } from '../../lib/repository';
 import { uploadAsset } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Upload, Feather, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Upload, Feather, X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface UpdatesManagerProps {
   updates: Update[];
@@ -15,6 +15,8 @@ export const UpdatesManager: React.FC<UpdatesManagerProps> = ({ updates, books, 
   const [editingUp, setEditingUp] = useState<Partial<Update> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const categories: UpdateCategory[] = [
     'Escrita',
@@ -40,19 +42,25 @@ export const UpdatesManager: React.FC<UpdatesManagerProps> = ({ updates, books, 
   };
 
   const handleOpenCreate = () => {
+    setSaveError(null);
     setEditingUp(emptyUpdate);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (up: Update) => {
+    setSaveError(null);
     setEditingUp(up);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja remover esta anotação do diário?')) {
-      await repository.deleteUpdate(id);
-      onRefresh();
+      try {
+        await repository.deleteUpdate(id);
+        onRefresh();
+      } catch (err: any) {
+        alert(err?.message || 'Falha ao remover a anotação.');
+      }
     }
   };
 
@@ -74,19 +82,31 @@ export const UpdatesManager: React.FC<UpdatesManagerProps> = ({ updates, books, 
     e.preventDefault();
     if (!editingUp || !editingUp.title) return;
 
-    // Resolve book / project titles for denormalized display
-    const relatedBook = books.find((b) => b.id === editingUp.book_id);
-    const relatedProj = projects.find((p) => p.id === editingUp.project_id);
+    setIsSaving(true);
+    setSaveError(null);
 
-    await repository.saveUpdate({
-      ...editingUp,
-      book_title: relatedBook?.title || '',
-      project_title: relatedProj?.title || ''
-    });
+    try {
+      // Resolve book / project titles for denormalized display
+      const relatedBook = books.find((b) => b.id === editingUp.book_id);
+      const relatedProj = projects.find((p) => p.id === editingUp.project_id);
 
-    setIsModalOpen(false);
-    setEditingUp(null);
-    onRefresh();
+      await repository.saveUpdate({
+        ...editingUp,
+        book_id: editingUp.book_id || null,
+        project_id: editingUp.project_id || null,
+        book_title: relatedBook?.title || '',
+        project_title: relatedProj?.title || ''
+      });
+
+      setIsModalOpen(false);
+      setEditingUp(null);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao salvar atualização:', err);
+      setSaveError(err?.message || 'Não foi possível salvar a anotação do diário.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -184,6 +204,13 @@ export const UpdatesManager: React.FC<UpdatesManagerProps> = ({ updates, books, 
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {saveError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-sm text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{saveError}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block uppercase tracking-wider font-semibold text-stone-700 dark:text-stone-300 mb-1">
@@ -324,9 +351,11 @@ export const UpdatesManager: React.FC<UpdatesManagerProps> = ({ updates, books, 
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  Salvar Registro
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSaving ? 'Salvando...' : 'Salvar Registro'}</span>
                 </button>
               </div>
             </form>

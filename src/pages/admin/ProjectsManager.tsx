@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Project, ProjectStage, BookStageStatus } from '../../types';
 import { repository, slugify } from '../../lib/repository';
 import { uploadAsset } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, Eye, EyeOff, Upload, Compass, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, EyeOff, Upload, Compass, X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface ProjectsManagerProps {
   projects: Project[];
@@ -13,6 +13,8 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ projects, onRe
   const [editingProj, setEditingProj] = useState<Partial<Project> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const emptyProject: Partial<Project> = {
     title: '',
@@ -33,19 +35,25 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ projects, onRe
   };
 
   const handleOpenCreate = () => {
+    setSaveError(null);
     setEditingProj(emptyProject);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (p: Project) => {
+    setSaveError(null);
     setEditingProj(p);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este projeto?')) {
-      await repository.deleteProject(id);
-      onRefresh();
+      try {
+        await repository.deleteProject(id);
+        onRefresh();
+      } catch (err: any) {
+        alert(err?.message || 'Falha ao remover o projeto.');
+      }
     }
   };
 
@@ -66,10 +74,19 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ projects, onRe
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProj || !editingProj.title) return;
-    await repository.saveProject(editingProj);
-    setIsModalOpen(false);
-    setEditingProj(null);
-    onRefresh();
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await repository.saveProject(editingProj);
+      setIsModalOpen(false);
+      setEditingProj(null);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao salvar projeto:', err);
+      setSaveError(err?.message || 'Não foi possível salvar o projeto.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -172,6 +189,13 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ projects, onRe
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {saveError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-sm text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{saveError}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block uppercase tracking-wider font-semibold text-stone-700 dark:text-stone-300 mb-1">
@@ -280,9 +304,11 @@ export const ProjectsManager: React.FC<ProjectsManagerProps> = ({ projects, onRe
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  Salvar Projeto
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSaving ? 'Salvando...' : 'Salvar Projeto'}</span>
                 </button>
               </div>
             </form>

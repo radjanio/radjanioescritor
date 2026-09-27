@@ -13,7 +13,9 @@ import {
   X,
   Layers,
   ExternalLink,
-  Percent
+  Percent,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 interface BooksManagerProps {
@@ -25,8 +27,10 @@ export const BooksManager: React.FC<BooksManagerProps> = ({ books, onRefresh }) 
   const [editingBook, setEditingBook] = useState<Partial<Book> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const emptyBook: Partial<Book> = {
+  const createEmptyBook = (): Partial<Book> => ({
     title: '',
     slug: '',
     edition: '1ª Edição',
@@ -42,31 +46,37 @@ export const BooksManager: React.FC<BooksManagerProps> = ({ books, onRefresh }) 
     publication_date: '',
     featured: false,
     stages: [
-      { id: 'stg-1', book_id: '', title: 'Planejamento e Pesquisa', status: 'Em andamento', order_index: 0 },
-      { id: 'stg-2', book_id: '', title: 'Escrita do Manuscrito', status: 'Pendente', order_index: 1 },
-      { id: 'stg-3', book_id: '', title: 'Revisão Editorial', status: 'Pendente', order_index: 2 },
-      { id: 'stg-4', book_id: '', title: 'Diagramação & Capa', status: 'Pendente', order_index: 3 },
-      { id: 'stg-5', book_id: '', title: 'Publicação Oficial', status: 'Pendente', order_index: 4 },
+      { id: crypto.randomUUID(), book_id: '', title: 'Planejamento e Pesquisa', status: 'Em andamento', order_index: 0 },
+      { id: crypto.randomUUID(), book_id: '', title: 'Escrita do Manuscrito', status: 'Pendente', order_index: 1 },
+      { id: crypto.randomUUID(), book_id: '', title: 'Revisão Editorial', status: 'Pendente', order_index: 2 },
+      { id: crypto.randomUUID(), book_id: '', title: 'Diagramação & Capa', status: 'Pendente', order_index: 3 },
+      { id: crypto.randomUUID(), book_id: '', title: 'Publicação Oficial', status: 'Pendente', order_index: 4 },
     ]
-  };
+  });
 
   const handleOpenCreate = () => {
-    setEditingBook(emptyBook);
+    setSaveError(null);
+    setEditingBook(createEmptyBook());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (b: Book) => {
+    setSaveError(null);
     setEditingBook({
       ...b,
-      stages: b.stages && b.stages.length > 0 ? b.stages : emptyBook.stages
+      stages: b.stages && b.stages.length > 0 ? b.stages : createEmptyBook().stages
     });
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja remover este livro?')) {
-      await repository.deleteBook(id);
-      onRefresh();
+      try {
+        await repository.deleteBook(id);
+        onRefresh();
+      } catch (err: any) {
+        alert(err?.message || 'Falha ao remover o livro do banco.');
+      }
     }
   };
 
@@ -88,10 +98,20 @@ export const BooksManager: React.FC<BooksManagerProps> = ({ books, onRefresh }) 
     e.preventDefault();
     if (!editingBook || !editingBook.title) return;
 
-    await repository.saveBook(editingBook);
-    setIsModalOpen(false);
-    setEditingBook(null);
-    onRefresh();
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await repository.saveBook(editingBook);
+      setIsModalOpen(false);
+      setEditingBook(null);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao salvar livro:', err);
+      setSaveError(err?.message || 'Não foi possível salvar o livro. Verifique os dados e tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const addStage = () => {
@@ -265,6 +285,13 @@ export const BooksManager: React.FC<BooksManagerProps> = ({ books, onRefresh }) 
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {saveError && (
+                <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-sm text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{saveError}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block uppercase tracking-wider font-semibold text-stone-700 dark:text-stone-300 mb-1">
@@ -579,9 +606,11 @@ export const BooksManager: React.FC<BooksManagerProps> = ({ books, onRefresh }) 
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  Salvar Livro
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSaving ? 'Salvando Livro...' : 'Salvar Livro'}</span>
                 </button>
               </div>
             </form>

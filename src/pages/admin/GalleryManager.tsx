@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GalleryItem, GalleryCategory, Book, Project } from '../../types';
 import { repository } from '../../lib/repository';
 import { uploadAsset } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, Image as ImageIcon, X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface GalleryManagerProps {
   gallery: GalleryItem[];
@@ -15,6 +15,8 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ gallery, books, 
   const [editingItem, setEditingItem] = useState<Partial<GalleryItem> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const categories: GalleryCategory[] = ['Capas', 'Conceitos', 'Ilustrações', 'Fotografias', 'Outros'];
 
@@ -29,19 +31,25 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ gallery, books, 
   };
 
   const handleOpenCreate = () => {
+    setSaveError(null);
     setEditingItem(emptyItem);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (item: GalleryItem) => {
+    setSaveError(null);
     setEditingItem(item);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja remover esta imagem da galeria?')) {
-      await repository.deleteGalleryItem(id);
-      onRefresh();
+      try {
+        await repository.deleteGalleryItem(id);
+        onRefresh();
+      } catch (err: any) {
+        alert(err?.message || 'Falha ao remover o item da galeria.');
+      }
     }
   };
 
@@ -66,10 +74,26 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ gallery, books, 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem || !editingItem.title || !editingItem.image_url) return;
-    await repository.saveGalleryItem(editingItem);
-    setIsModalOpen(false);
-    setEditingItem(null);
-    onRefresh();
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await repository.saveGalleryItem({
+        ...editingItem,
+        book_id: editingItem.book_id || null,
+        project_id: editingItem.project_id || null
+      });
+
+      setIsModalOpen(false);
+      setEditingItem(null);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao salvar na galeria:', err);
+      setSaveError(err?.message || 'Não foi possível salvar o item da galeria.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -155,6 +179,13 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ gallery, books, 
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {saveError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-sm text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{saveError}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block uppercase tracking-wider font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   Título da Imagem *
@@ -242,9 +273,11 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ gallery, books, 
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  Salvar Imagem
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSaving ? 'Salvando...' : 'Salvar Imagem'}</span>
                 </button>
               </div>
             </form>

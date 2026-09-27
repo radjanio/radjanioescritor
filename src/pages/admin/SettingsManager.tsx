@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { SiteSettings } from '../../types';
 import { repository } from '../../lib/repository';
 import { uploadAsset } from '../../lib/supabase';
-import { Upload, CheckCircle, Save, Feather } from 'lucide-react';
+import { Upload, CheckCircle, Save, Feather, AlertCircle, Loader2 } from 'lucide-react';
 
 interface SettingsManagerProps {
   settings: SiteSettings;
@@ -13,6 +13,8 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, onRe
   const [formData, setFormData] = useState<SiteSettings>(settings);
   const [saved, setSaved] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -30,10 +32,19 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, onRe
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await repository.updateSettings(formData);
-    setSaved(true);
-    onRefresh();
-    setTimeout(() => setSaved(false), 3000);
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await repository.updateSettings(formData);
+      setSaved(true);
+      onRefresh();
+      setTimeout(() => setSaved(false), 4000);
+    } catch (err: any) {
+      console.error('Erro ao atualizar configurações:', err);
+      setSaveError(err?.message || 'Falha ao salvar configurações no Supabase.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -51,6 +62,13 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, onRe
         <div className="p-3.5 rounded-sm bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
           <CheckCircle className="w-4 h-4 shrink-0" />
           <span>Configurações atualizadas com sucesso! As alterações já estão visíveis no site público.</span>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="p-3.5 rounded-sm bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-800 dark:text-rose-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{saveError}</span>
         </div>
       )}
 
@@ -184,10 +202,11 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, onRe
         <div className="pt-4 flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2.5 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white flex items-center gap-2 cursor-pointer"
+            disabled={isSaving}
+            className="px-6 py-2.5 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
-            <Save className="w-3.5 h-3.5" />
-            <span>Salvar Configurações</span>
+            {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span>{isSaving ? 'Salvando...' : 'Salvar Configurações'}</span>
           </button>
         </div>
       </form>

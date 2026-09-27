@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TimelineEvent } from '../../types';
 import { repository } from '../../lib/repository';
 import { uploadAsset } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, Calendar, Upload, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, ArrowUp, ArrowDown, Calendar, Upload, X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface TimelineManagerProps {
   events: TimelineEvent[];
@@ -13,6 +13,8 @@ export const TimelineManager: React.FC<TimelineManagerProps> = ({ events, onRefr
   const [editingEv, setEditingEv] = useState<Partial<TimelineEvent> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const emptyEvent: Partial<TimelineEvent> = {
     title: '',
@@ -24,19 +26,25 @@ export const TimelineManager: React.FC<TimelineManagerProps> = ({ events, onRefr
   };
 
   const handleOpenCreate = () => {
+    setSaveError(null);
     setEditingEv(emptyEvent);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (ev: TimelineEvent) => {
+    setSaveError(null);
     setEditingEv(ev);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja remover este evento da linha do tempo?')) {
-      await repository.deleteTimelineEvent(id);
-      onRefresh();
+      try {
+        await repository.deleteTimelineEvent(id);
+        onRefresh();
+      } catch (err: any) {
+        alert(err?.message || 'Falha ao remover o evento.');
+      }
     }
   };
 
@@ -47,18 +55,33 @@ export const TimelineManager: React.FC<TimelineManagerProps> = ({ events, onRefr
     const currentItem = events[index];
     const targetItem = events[targetIndex];
 
-    await repository.saveTimelineEvent({ ...currentItem, order_index: targetIndex });
-    await repository.saveTimelineEvent({ ...targetItem, order_index: index });
-    onRefresh();
+    try {
+      await repository.saveTimelineEvent({ ...currentItem, order_index: targetIndex });
+      await repository.saveTimelineEvent({ ...targetItem, order_index: index });
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao reordenar:', err);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingEv || !editingEv.title) return;
-    await repository.saveTimelineEvent(editingEv);
-    setIsModalOpen(false);
-    setEditingEv(null);
-    onRefresh();
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await repository.saveTimelineEvent(editingEv);
+      setIsModalOpen(false);
+      setEditingEv(null);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao salvar evento:', err);
+      setSaveError(err?.message || 'Não foi possível salvar o marco na linha do tempo.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -170,6 +193,13 @@ export const TimelineManager: React.FC<TimelineManagerProps> = ({ events, onRefr
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {saveError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-sm text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{saveError}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block uppercase tracking-wider font-semibold text-stone-700 dark:text-stone-300 mb-1">
                   Título do Marco *
@@ -234,9 +264,11 @@ export const TimelineManager: React.FC<TimelineManagerProps> = ({ events, onRefr
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  Salvar Marco
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSaving ? 'Salvando...' : 'Salvar Marco'}</span>
                 </button>
               </div>
             </form>

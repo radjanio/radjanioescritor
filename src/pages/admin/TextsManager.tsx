@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { TextItem, TextCategory } from '../../types';
 import { repository, slugify } from '../../lib/repository';
 import { uploadAsset } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, Upload, Feather, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Upload, Feather, X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface TextsManagerProps {
   texts: TextItem[];
@@ -13,6 +13,8 @@ export const TextsManager: React.FC<TextsManagerProps> = ({ texts, onRefresh }) 
   const [editingText, setEditingText] = useState<Partial<TextItem> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const categories: TextCategory[] = ['Poemas', 'Contos', 'Crônicas', 'Reflexões', 'Fragmentos'];
 
@@ -26,19 +28,25 @@ export const TextsManager: React.FC<TextsManagerProps> = ({ texts, onRefresh }) 
   };
 
   const handleOpenCreate = () => {
+    setSaveError(null);
     setEditingText(emptyText);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (t: TextItem) => {
+    setSaveError(null);
     setEditingText(t);
     setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este texto?')) {
-      await repository.deleteText(id);
-      onRefresh();
+      try {
+        await repository.deleteText(id);
+        onRefresh();
+      } catch (err: any) {
+        alert(err?.message || 'Falha ao remover o texto.');
+      }
     }
   };
 
@@ -59,10 +67,21 @@ export const TextsManager: React.FC<TextsManagerProps> = ({ texts, onRefresh }) 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingText || !editingText.title) return;
-    await repository.saveText(editingText);
-    setIsModalOpen(false);
-    setEditingText(null);
-    onRefresh();
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      await repository.saveText(editingText);
+      setIsModalOpen(false);
+      setEditingText(null);
+      onRefresh();
+    } catch (err: any) {
+      console.error('Erro ao salvar texto:', err);
+      setSaveError(err?.message || 'Não foi possível salvar o texto.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -152,6 +171,13 @@ export const TextsManager: React.FC<TextsManagerProps> = ({ texts, onRefresh }) 
             </div>
 
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              {saveError && (
+                <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-sm text-xs text-rose-800 dark:text-rose-300 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{saveError}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block uppercase tracking-wider font-semibold text-stone-700 dark:text-stone-300 mb-1">
@@ -222,9 +248,11 @@ export const TextsManager: React.FC<TextsManagerProps> = ({ texts, onRefresh }) 
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider"
+                  disabled={isSaving}
+                  className="px-6 py-2 bg-stone-900 text-stone-100 dark:bg-stone-100 dark:text-stone-900 rounded-sm font-semibold uppercase tracking-wider hover:bg-stone-800 dark:hover:bg-white disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  Salvar Texto
+                  {isSaving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isSaving ? 'Salvando...' : 'Salvar Texto'}</span>
                 </button>
               </div>
             </form>
