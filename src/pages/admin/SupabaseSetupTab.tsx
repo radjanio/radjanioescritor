@@ -214,6 +214,33 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
   facebook_url TEXT,
   twitter_url TEXT,
   youtube_url TEXT,
+  lattes_url TEXT,
+  orcid_url TEXT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 9. TABELA ACADÊMICA (FORMAÇÃO, CURSOS, PESQUISA & DOCÊNCIA)
+CREATE TABLE IF NOT EXISTS public.academic_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('Formação', 'Curso & Oficina', 'Artigo & Pesquisa', 'Palestra & Docência', 'Certificação')),
+  institution TEXT NOT NULL,
+  degree_level TEXT,
+  field_of_study TEXT,
+  start_year TEXT,
+  end_year TEXT,
+  status TEXT NOT NULL DEFAULT 'Concluído' CHECK (status IN ('Concluído', 'Em andamento', 'Interrompido')),
+  workload_hours INTEGER,
+  description TEXT,
+  thesis_title TEXT,
+  advisor TEXT,
+  certificate_url TEXT,
+  external_link TEXT,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  featured BOOLEAN NOT NULL DEFAULT FALSE,
+  published BOOLEAN NOT NULL DEFAULT TRUE,
+  is_demo BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -239,6 +266,7 @@ ALTER TABLE public.texts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.timeline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gallery ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.academic_items ENABLE ROW LEVEL SECURITY;
 
 -- Books
 DROP POLICY IF EXISTS "books_select_policy" ON public.books;
@@ -287,6 +315,12 @@ DROP POLICY IF EXISTS "settings_select_policy" ON public.site_settings;
 CREATE POLICY "settings_select_policy" ON public.site_settings FOR SELECT USING (true);
 DROP POLICY IF EXISTS "settings_admin_policy" ON public.site_settings;
 CREATE POLICY "settings_admin_policy" ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+
+-- Academic Items
+DROP POLICY IF EXISTS "academic_select_policy" ON public.academic_items;
+CREATE POLICY "academic_select_policy" ON public.academic_items FOR SELECT USING (published = true);
+DROP POLICY IF EXISTS "academic_admin_policy" ON public.academic_items;
+CREATE POLICY "academic_admin_policy" ON public.academic_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- STORAGE BUCKET
 INSERT INTO storage.buckets (id, name, public)

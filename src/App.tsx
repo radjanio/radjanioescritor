@@ -10,7 +10,8 @@ import {
   TextItem,
   TimelineEvent,
   GalleryItem,
-  SiteSettings
+  SiteSettings,
+  AcademicItem
 } from './types';
 
 // Components
@@ -29,6 +30,7 @@ import { TextsPage } from './pages/TextsPage';
 import { TextDetailPage } from './pages/TextDetailPage';
 import { TimelinePage } from './pages/TimelinePage';
 import { GalleryPage } from './pages/GalleryPage';
+import { AcademicPage } from './pages/AcademicPage';
 import { AboutPage } from './pages/AboutPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -51,11 +53,12 @@ export function AppContent() {
   const [texts, setTexts] = useState<TextItem[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [academicItems, setAcademicItems] = useState<AcademicItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const loadData = async () => {
     try {
-      const [s, b, p, u, t, tl, g] = await Promise.all([
+      const [s, b, p, u, t, tl, g, ac] = await Promise.all([
         repository.getSettings(),
         repository.getBooks(),
         repository.getProjects(false), // only public
@@ -63,6 +66,7 @@ export function AppContent() {
         repository.getTexts(false), // only published
         repository.getTimeline(false),
         repository.getGallery(false),
+        repository.getAcademicItems(false),
       ]);
 
       setSettings(s);
@@ -72,6 +76,7 @@ export function AppContent() {
       setTexts(t);
       setTimelineEvents(tl);
       setGallery(g);
+      setAcademicItems(ac);
     } catch (err) {
       console.error('Falha ao carregar acervo:', err);
     } finally {
@@ -159,7 +164,12 @@ export function AppContent() {
       return <GalleryPage items={gallery} navigate={navigate} />;
     }
 
-    // 8. SOBRE
+    // 8. ACADÊMICO (FORMAÇÃO, CURSOS & PESQUISA)
+    if (route.path === 'academico') {
+      return <AcademicPage items={academicItems} settings={settings} navigate={navigate} />;
+    }
+
+    // 9. SOBRE
     if (route.path === 'sobre') {
       return <AboutPage settings={settings} navigate={navigate} />;
     }

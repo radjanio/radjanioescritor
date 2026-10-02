@@ -140,6 +140,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ settings, navigate }) => {
               Ver livros publicados
             </button>
             <button
+              onClick={() => navigate('/academico')}
+              className="px-6 py-2.5 rounded-sm border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs uppercase tracking-widest font-semibold hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors cursor-pointer"
+            >
+              Trajetória Acadêmica
+            </button>
+            <button
               onClick={() => navigate('/timeline')}
               className="px-6 py-2.5 rounded-sm border border-stone-300 dark:border-stone-700 text-stone-800 dark:text-stone-200 text-xs uppercase tracking-widest font-semibold hover:bg-stone-100 dark:hover:bg-stone-900 transition-colors cursor-pointer"
             >

@@ -196,6 +196,26 @@ export const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, onRe
                 className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-sm text-stone-900 dark:text-stone-100"
               />
             </div>
+            <div>
+              <label className="block text-stone-600 dark:text-stone-400 mb-1">Currículo Lattes (CNPq)</label>
+              <input
+                type="url"
+                value={formData.lattes_url || ''}
+                onChange={(e) => setFormData({ ...formData, lattes_url: e.target.value })}
+                placeholder="http://lattes.cnpq.br/..."
+                className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-sm text-stone-900 dark:text-stone-100"
+              />
+            </div>
+            <div>
+              <label className="block text-stone-600 dark:text-stone-400 mb-1">ORCID iD (Identificador Acadêmico)</label>
+              <input
+                type="url"
+                value={formData.orcid_url || ''}
+                onChange={(e) => setFormData({ ...formData, orcid_url: e.target.value })}
+                placeholder="https://orcid.org/0000-..."
+                className="w-full px-3 py-2 bg-stone-50 dark:bg-stone-950 border border-stone-200 dark:border-stone-800 rounded-sm text-stone-900 dark:text-stone-100"
+              />
+            </div>
           </div>
         </div>
 

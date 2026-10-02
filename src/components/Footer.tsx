@@ -63,6 +63,11 @@ export const Footer: React.FC<FooterProps> = ({ settings, navigate }) => {
                 </button>
               </li>
               <li>
+                <button onClick={() => navigate('/academico')} className="hover:text-stone-900 dark:hover:text-stone-100 transition-colors">
+                  Área Acadêmica &amp; Cursos
+                </button>
+              </li>
+              <li>
                 <button onClick={() => navigate('/timeline')} className="hover:text-stone-900 dark:hover:text-stone-100 transition-colors">
                   Linha do Tempo
                 </button>

@@ -136,6 +136,39 @@ export interface GalleryItem {
   created_at: string;
 }
 
+export type AcademicType =
+  | 'Formação'
+  | 'Curso & Oficina'
+  | 'Artigo & Pesquisa'
+  | 'Palestra & Docência'
+  | 'Certificação';
+
+export type AcademicStatus = 'Concluído' | 'Em andamento' | 'Interrompido';
+
+export interface AcademicItem {
+  id: string;
+  title: string;
+  type: AcademicType;
+  institution: string;
+  degree_level?: string;
+  field_of_study?: string;
+  start_year?: string;
+  end_year?: string;
+  status: AcademicStatus;
+  workload_hours?: number | null;
+  description?: string;
+  thesis_title?: string;
+  advisor?: string;
+  certificate_url?: string;
+  external_link?: string;
+  order_index: number;
+  featured: boolean;
+  published: boolean;
+  is_demo?: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface SiteSettings {
   id: string;
   author_name: string;
@@ -147,6 +180,8 @@ export interface SiteSettings {
   facebook_url?: string;
   twitter_url?: string;
   youtube_url?: string;
+  lattes_url?: string;
+  orcid_url?: string;
   updated_at?: string;
 }
 

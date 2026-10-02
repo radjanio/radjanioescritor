@@ -16,6 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate, authorNam
     { label: 'Projetos', path: '/projetos' },
     { label: 'Escrita', path: '/escrita' },
     { label: 'Textos', path: '/textos' },
+    { label: 'Acadêmico', path: '/academico' },
     { label: 'Linha do Tempo', path: '/timeline' },
     { label: 'Galeria', path: '/galeria' },
     { label: 'Sobre', path: '/sobre' },

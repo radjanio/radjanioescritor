@@ -7,7 +7,10 @@ import {
   TextItem,
   TimelineEvent,
   GalleryItem,
-  SiteSettings
+  SiteSettings,
+  AcademicItem,
+  AcademicType,
+  AcademicStatus
 } from '../types';
 import { getSupabase, isSupabaseConfigured } from './supabase';
 
@@ -66,8 +69,105 @@ const DEFAULT_SETTINGS: SiteSettings = {
   facebook_url: '',
   twitter_url: '',
   youtube_url: '',
+  lattes_url: '',
+  orcid_url: '',
   updated_at: new Date().toISOString()
 };
+
+const DEFAULT_ACADEMIC_ITEMS: AcademicItem[] = [
+  {
+    id: 'acad-11111111-0001-4000-8000-000000000001',
+    title: 'Graduação em Letras (Língua Portuguesa & Literaturas)',
+    type: 'Formação',
+    institution: 'Universidade Federal / Estadual',
+    degree_level: 'Bacharelado & Licenciatura',
+    field_of_study: 'Estudos Literários e Teoria da Ficção',
+    start_year: '2019',
+    end_year: '2023',
+    status: 'Concluído',
+    workload_hours: 3200,
+    description: 'Estudo aprofundado de literatura brasileira e portuguesa, filologia, poética clássica, crítica textual e análise estilística do romance contemporâneo.',
+    thesis_title: 'O Ritmo da Ausência: Silêncio e Construção Cênica na Prosa Moderna',
+    advisor: 'Prof. Dr. em Teoria Literária',
+    certificate_url: '',
+    external_link: '',
+    order_index: 0,
+    featured: true,
+    published: true,
+    created_at: '2023-12-15T12:00:00.000Z'
+  },
+  {
+    id: 'acad-22222222-0002-4000-8000-000000000002',
+    title: 'Especialização em Escrita Criativa & Narratologia Avançada',
+    type: 'Formação',
+    institution: 'Instituto de Pós-Graduação & Artes da Palavra',
+    degree_level: 'Pós-Graduação Lato Sensu',
+    field_of_study: 'Criação Literária e Roteiro de Ficção',
+    start_year: '2024',
+    end_year: '2025',
+    status: 'Em andamento',
+    workload_hours: 420,
+    description: 'Investigação das técnicas de construção de romances de fôlego, arco dramático, polifonia e consistência de vozes narrativas.',
+    thesis_title: 'Mapeamento Arquitetônico de Ficção de Longa Duração',
+    advisor: '',
+    certificate_url: '',
+    external_link: '',
+    order_index: 1,
+    featured: true,
+    published: true,
+    created_at: '2024-03-10T12:00:00.000Z'
+  },
+  {
+    id: 'acad-33333333-0003-4000-8000-000000000003',
+    title: 'Oficina de Laboratório de Criação e Worldbuilding Literário',
+    type: 'Curso & Oficina',
+    institution: 'Laboratório de Práticas Narrativas',
+    degree_level: 'Extensão Universitária',
+    field_of_study: 'Ficção Especulativa e Narrativa Imersiva',
+    start_year: '2024',
+    end_year: '2024',
+    status: 'Concluído',
+    workload_hours: 60,
+    description: 'Módulo imersivo dedicado à consistência lógica e sensorial de cenários ficcionais, ressonância temática e verossimilhança interna.',
+    order_index: 2,
+    featured: false,
+    published: true,
+    created_at: '2024-07-20T12:00:00.000Z'
+  },
+  {
+    id: 'acad-44444444-0004-4000-8000-000000000004',
+    title: 'A Poética do Não-Dito: O Subtexto na Literatura Contemporânea',
+    type: 'Artigo & Pesquisa',
+    institution: 'Revista de Estudos Literários & Cadernos Críticos',
+    degree_level: 'Artigo Científico / Ensaio',
+    field_of_study: 'Crítica Literária',
+    start_year: '2024',
+    end_year: '2024',
+    status: 'Concluído',
+    description: 'Artigo analítico sobre a gestão da informação, a economia das palavras e o impacto do silêncio sobre a imaginação e a experiência do leitor.',
+    order_index: 3,
+    featured: true,
+    published: true,
+    created_at: '2024-09-05T12:00:00.000Z'
+  },
+  {
+    id: 'acad-55555555-0005-4000-8000-000000000005',
+    title: 'Palestra: Da Ideia ao Livro Impresso — Rigor e Disciplina Autoral',
+    type: 'Palestra & Docência',
+    institution: 'Semana Literária & Jornada Acadêmica de Letras',
+    degree_level: 'Conferência Convidada',
+    field_of_study: 'Produção Editorial e Criação Autoral',
+    start_year: '2024',
+    end_year: '2024',
+    status: 'Concluído',
+    workload_hours: 4,
+    description: 'Conferência ministrada sobre a superação dos bloqueios criativos, estruturação de rascunhos, publicação independente e a rotina da escrita.',
+    order_index: 4,
+    featured: false,
+    published: true,
+    created_at: '2024-11-12T12:00:00.000Z'
+  }
+];
 
 // Local storage buffer for offline fallback
 const STORAGE_PREFIX = 'radjanio_app_';
@@ -787,6 +887,125 @@ export const repository = {
     setLocal('gallery', list.filter((g) => g.id !== id));
   },
 
+  // ===================== ACADEMIC (FORMAÇÃO, CURSOS & PESQUISA) =====================
+  async getAcademicItems(includeDrafts = false): Promise<AcademicItem[]> {
+    const supabase = getSupabase();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        let query = supabase.from('academic_items').select('*').order('order_index', { ascending: true });
+        if (!includeDrafts) {
+          query = query.eq('published', true);
+        }
+        const { data, error } = await query;
+        if (!error && data && data.length > 0) {
+          return data as AcademicItem[];
+        }
+      } catch (err) {
+        console.warn('Tabela academic_items ainda não consultável no Supabase, usando armazenamento local:', err);
+      }
+    }
+    const all = getLocal<AcademicItem[]>('academic_items', DEFAULT_ACADEMIC_ITEMS);
+    const sorted = [...all].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+    return includeDrafts ? sorted : sorted.filter((it) => it.published);
+  },
+
+  async saveAcademicItem(itemData: Partial<AcademicItem>): Promise<AcademicItem> {
+    const list = await this.getAcademicItems(true);
+    const isNew = !itemData.id || !isValidUuid(itemData.id);
+    const id = !isNew && itemData.id ? itemData.id : crypto.randomUUID();
+
+    const validTypes: AcademicType[] = ['Formação', 'Curso & Oficina', 'Artigo & Pesquisa', 'Palestra & Docência', 'Certificação'];
+    const type = validTypes.includes(itemData.type as any) ? (itemData.type as AcademicType) : 'Curso & Oficina';
+
+    const validStatuses: AcademicStatus[] = ['Concluído', 'Em andamento', 'Interrompido'];
+    const status = validStatuses.includes(itemData.status as any) ? (itemData.status as AcademicStatus) : 'Concluído';
+
+    const workload = sanitizeNumber(itemData.workload_hours);
+
+    const newItem: AcademicItem = {
+      id,
+      title: itemData.title?.trim() || 'Formação / Curso',
+      type,
+      institution: itemData.institution?.trim() || '',
+      degree_level: itemData.degree_level?.trim() || '',
+      field_of_study: itemData.field_of_study?.trim() || '',
+      start_year: itemData.start_year?.trim() || '',
+      end_year: itemData.end_year?.trim() || '',
+      status,
+      workload_hours: workload !== null ? Math.round(workload) : null,
+      description: itemData.description?.trim() || '',
+      thesis_title: itemData.thesis_title?.trim() || '',
+      advisor: itemData.advisor?.trim() || '',
+      certificate_url: itemData.certificate_url?.trim() || '',
+      external_link: itemData.external_link?.trim() || '',
+      order_index: itemData.order_index !== undefined ? Number(itemData.order_index) : list.length,
+      featured: Boolean(itemData.featured),
+      published: itemData.published !== undefined ? itemData.published : true,
+      is_demo: Boolean(itemData.is_demo),
+      created_at: itemData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const supabase = getSupabase();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        const cleanDbItem = {
+          id: newItem.id,
+          title: newItem.title,
+          type: newItem.type,
+          institution: newItem.institution,
+          degree_level: newItem.degree_level || null,
+          field_of_study: newItem.field_of_study || null,
+          start_year: newItem.start_year || null,
+          end_year: newItem.end_year || null,
+          status: newItem.status,
+          workload_hours: newItem.workload_hours,
+          description: newItem.description || null,
+          thesis_title: newItem.thesis_title || null,
+          advisor: newItem.advisor || null,
+          certificate_url: newItem.certificate_url || null,
+          external_link: newItem.external_link || null,
+          order_index: newItem.order_index,
+          featured: newItem.featured,
+          published: newItem.published,
+          is_demo: newItem.is_demo,
+          created_at: newItem.created_at,
+          updated_at: newItem.updated_at
+        };
+
+        const { error } = await supabase.from('academic_items').upsert(cleanDbItem);
+        if (error) {
+          console.warn('Aviso: Supabase academic_items não pôde ser gravado remotamente (tabela pode ainda não ter sido criada no editor SQL):', error.message);
+        }
+      } catch (err) {
+        console.warn('Exceção ao sincronizar com Supabase academic_items:', err);
+      }
+    }
+
+    const localList = getLocal<AcademicItem[]>('academic_items', DEFAULT_ACADEMIC_ITEMS);
+    let updatedList: AcademicItem[];
+    if (isNew) {
+      updatedList = [...localList.filter((it) => it.id !== id), newItem];
+    } else {
+      updatedList = localList.map((it) => (it.id === id ? newItem : it));
+    }
+    setLocal('academic_items', updatedList);
+    return newItem;
+  },
+
+  async deleteAcademicItem(id: string): Promise<void> {
+    const supabase = getSupabase();
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        await supabase.from('academic_items').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Aviso ao deletar academic_items no Supabase:', err);
+      }
+    }
+    const list = getLocal<AcademicItem[]>('academic_items', DEFAULT_ACADEMIC_ITEMS);
+    setLocal('academic_items', list.filter((it) => it.id !== id));
+  },
+
   // ===================== DEMO DATA MANAGEMENT =====================
   loadIdentifiedSampleData(): void {
     const sampleBooks: Book[] = [
@@ -829,5 +1048,6 @@ export const repository = {
     setLocal('texts', filterOutDemo(getLocal<TextItem[]>('texts', [])));
     setLocal('timeline', filterOutDemo(getLocal<TimelineEvent[]>('timeline', [])));
     setLocal('gallery', filterOutDemo(getLocal<GalleryItem[]>('gallery', [])));
+    setLocal('academic_items', filterOutDemo(getLocal<AcademicItem[]>('academic_items', DEFAULT_ACADEMIC_ITEMS)));
   }
 };

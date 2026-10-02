@@ -8,7 +8,8 @@ import {
   TextItem,
   TimelineEvent,
   GalleryItem,
-  SiteSettings
+  SiteSettings,
+  AcademicItem
 } from '../../types';
 import { BooksManager } from './BooksManager';
 import { ProjectsManager } from './ProjectsManager';
@@ -17,6 +18,7 @@ import { TextsManager } from './TextsManager';
 import { TimelineManager } from './TimelineManager';
 import { GalleryManager } from './GalleryManager';
 import { SettingsManager } from './SettingsManager';
+import { AcademicManager } from './AcademicManager';
 import { SupabaseSetupTab } from './SupabaseSetupTab';
 import {
   LayoutDashboard,
@@ -26,6 +28,7 @@ import {
   FileText,
   Calendar,
   Image as ImageIcon,
+  GraduationCap,
   Settings,
   Database,
   LogOut,
@@ -55,6 +58,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
   const [texts, setTexts] = useState<TextItem[]>([]);
   const [timelineEvents, setTimelineEvents] = useState<TimelineEvent[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [academicItems, setAcademicItems] = useState<AcademicItem[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
@@ -74,7 +78,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
   }, [subpage]);
 
   const refreshAllData = async () => {
-    const [b, p, u, t, tl, g, s] = await Promise.all([
+    const [b, p, u, t, tl, g, s, ac] = await Promise.all([
       repository.getBooks(),
       repository.getProjects(true),
       repository.getUpdates(true),
@@ -82,6 +86,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
       repository.getTimeline(true),
       repository.getGallery(true),
       repository.getSettings(),
+      repository.getAcademicItems(true),
     ]);
 
     setBooks(b);
@@ -91,6 +96,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
     setTimelineEvents(tl);
     setGallery(g);
     setSettings(s);
+    setAcademicItems(ac);
   };
 
   const handleSelectTab = (tab: string) => {
@@ -127,6 +133,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
     { id: 'projetos', label: 'Projetos', icon: Compass, count: projects.length },
     { id: 'atualizacoes', label: 'Atualizações', icon: Feather, count: updates.length },
     { id: 'textos', label: 'Textos', icon: FileText, count: texts.length },
+    { id: 'academico', label: 'Acadêmico', icon: GraduationCap, count: academicItems.length },
     { id: 'timeline', label: 'Linha do Tempo', icon: Calendar, count: timelineEvents.length },
     { id: 'galeria', label: 'Galeria', icon: ImageIcon, count: gallery.length },
     { id: 'configuracoes', label: 'Configurações', icon: Settings, count: null },
@@ -284,7 +291,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
             </div>
 
             {/* Metric Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
               <div
                 onClick={() => handleSelectTab('livros')}
                 className="bg-white dark:bg-stone-900/60 p-5 rounded-sm border border-stone-200 dark:border-stone-800 cursor-pointer hover:border-amber-700 transition-all shadow-xs"
@@ -339,6 +346,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
                   {texts.length}
                 </div>
                 <span className="text-[10px] text-stone-400">Crônicas &amp; Poemas</span>
+              </div>
+
+              <div
+                onClick={() => handleSelectTab('academico')}
+                className="bg-white dark:bg-stone-900/60 p-5 rounded-sm border border-stone-200 dark:border-stone-800 cursor-pointer hover:border-amber-700 transition-all shadow-xs"
+              >
+                <div className="flex items-center justify-between text-stone-500 mb-2">
+                  <span className="text-[10px] uppercase tracking-wider font-semibold">Acadêmico</span>
+                  <GraduationCap className="w-4 h-4 text-amber-800 dark:text-amber-400" />
+                </div>
+                <div className="font-serif text-3xl font-bold text-stone-900 dark:text-stone-100">
+                  {academicItems.length}
+                </div>
+                <span className="text-[10px] text-stone-400">Cursos &amp; Formação</span>
               </div>
 
               <div
@@ -415,6 +436,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ navigate, subpag
           <UpdatesManager updates={updates} books={books} projects={projects} onRefresh={refreshAllData} />
         )}
         {activeTab === 'textos' && <TextsManager texts={texts} onRefresh={refreshAllData} />}
+        {activeTab === 'academico' && (
+          <AcademicManager items={academicItems} onRefresh={refreshAllData} />
+        )}
         {activeTab === 'timeline' && <TimelineManager events={timelineEvents} onRefresh={refreshAllData} />}
         {activeTab === 'galeria' && (
           <GalleryManager gallery={gallery} books={books} projects={projects} onRefresh={refreshAllData} />

@@ -35,6 +35,9 @@ function normalizeAdminSubpage(sub?: string): string {
   if (clean === 'galeria' || clean === 'gallery' || clean === 'fotos') {
     return 'galeria';
   }
+  if (clean === 'academico' || clean === 'formacao' || clean === 'cursos' || clean === 'academic') {
+    return 'academico';
+  }
   if (clean === 'configuracoes' || clean === 'configuracao' || clean === 'settings' || clean === 'config') {
     return 'configuracoes';
   }
@@ -87,6 +90,10 @@ export function parsePath(rawPathname: string): RouteState {
       return { path: 'timeline' };
     case 'galeria':
       return { path: 'galeria' };
+    case 'academico':
+    case 'formacao':
+    case 'cursos':
+      return { path: 'academico' };
     case 'sobre':
       return { path: 'sobre' };
     case 'login':
